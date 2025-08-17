@@ -1,6 +1,6 @@
 # Godot Video Converter
 
-A specialized video conversion tool designed for **Godot Engine 4.4.1** developers, with optimized settings for game development workflows.
+A specialized video conversion tool designed for **Godot Engine** developers, with optimized settings for game development workflows.
 
 ## 🎯 Purpose
 
@@ -14,7 +14,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 
 ### Supported Formats
 
-| Format       | Codecs              | Primary Purpose         | Godot 4.4.1 Support       | Recommended Usage          |
+| Format       | Codecs              | Primary Purpose         | Godot Support       | Recommended Usage          |
 |--------------|---------------------|-------------------------|--------------------------|---------------------------|
 | **OGV** (Recommended) | Theora/Vorbis | Native Godot integration | ✅ Full native support | All Godot projects |
 | **MP4** (Courtesy) | H.264/AAC | Cross-platform compatibility | ❌ Requires third-party plugins | Non-Godot use only |
@@ -64,7 +64,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 - **File handling**: Automatic duplicate prevention
 - **Settings**: Persist between sessions
 
-## 🎮 Why Use OGV in Godot 4.4.1?
+## 🎮 Why Use OGV in Godot?
 - **Native support**: Zero-configuration playback
 - **Cross-platform**: Identical behavior on all Godot targets
 - **Performance**: Lightweight decoding suitable for games
