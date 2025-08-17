@@ -115,7 +115,7 @@
 
                         <TextBlock Text="FPS:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <TextBox Text="{Binding Fps}" 
-                                 Width="30" 
+                                 Width="50" 
                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
                                  VerticalAlignment="Center" 
                                  MaxLength="2"/>
@@ -214,7 +214,7 @@
                     <!-- Frames -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                         <TextBlock Text="Frames:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <TextBox Text="{Binding AtlasFps}" Width="60" MaxLength="2"/>
+                        <TextBox Text="{Binding AtlasFps}" Width="50" MaxLength="2"/>
                     </StackPanel>
 
                     <!-- Layout -->
