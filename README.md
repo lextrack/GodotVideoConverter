@@ -49,7 +49,7 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 | **Constant FPS (CFR)**    | 15  | Fixed FPS         | UI elements              |
 | **Weak Hardware**         | 60  | Every 60 frames   | Mobile/Low-end devices   |
 | **Ideal Loop**            | 1   | Every frame       | Sprite animations        |
-| **Streaming Optimized**   | 15  | Every 5 frames    | Live streaming           |
+| **Controlled Bitrate**   | 15  | Every 5 frames    | Live streaming           |
 | **Mobile Optimized**      | 30  | Every 30 frames   | Mobile games             |
 
 ### Quality Presets (Performance Characteristics)

@@ -19,6 +19,7 @@
         <local:BooleanAndConverter x:Key="BooleanAndConverter"/>
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:GenerateAtlasButtonTextConverter x:Key="GenerateAtlasButtonTextConverter"/>
+        <local:Converter x:Key="Converter"/>
 
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -168,7 +169,7 @@
                     CornerRadius="3" 
                     Margin="0,0,0,8"
                     Padding="6"
-                    Visibility="{Binding VideoInfo, Converter={x:Static local:StringToVisibilityConverter.Instance}}">
+                    Visibility="{Binding VideoInfo, Converter={x:Static local:Converter.Instance}}">
                 <StackPanel>
                     <TextBlock Text="📹 Video Information" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
                     <Border Background="White" 
@@ -189,7 +190,7 @@
                     CornerRadius="3" 
                     Padding="6"
                     Margin="0,0,0,8"
-                    Visibility="{Binding Recommendations, Converter={x:Static local:StringToVisibilityConverter.Instance}}">
+                    Visibility="{Binding Recommendations, Converter={x:Static local:Converter.Instance}}">
                 <StackPanel>
                     <TextBlock Text="💡 Godot Recommendations" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
                     <TextBlock Text="{Binding Recommendations}" 
