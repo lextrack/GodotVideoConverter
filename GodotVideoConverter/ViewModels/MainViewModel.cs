@@ -151,7 +151,6 @@ namespace GodotVideoConverter.ViewModels
 
             var progressHandler = new Progress<int>(p => Progress = p);
 
-            // Pasar el modo de atlas seleccionado (o "Grid" por defecto)
             string atlasMode = SelectedAtlasMode ?? "Grid";
 
             await _service.ConvertToSpriteAtlasAsync(inputFile, outFile, AtlasFps, scaleFilter, atlasMode, progressHandler);
