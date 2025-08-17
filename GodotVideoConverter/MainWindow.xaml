@@ -214,7 +214,10 @@
                     <!-- Frames -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                         <TextBlock Text="Frames:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                        <TextBox Text="{Binding AtlasFps}" Width="50" MaxLength="2"/>
+                        <TextBox Text="{Binding AtlasFps}" 
+                                 Width="50" MaxLength="2" 
+                                 IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
+                        
                     </StackPanel>
 
                     <!-- Layout -->
@@ -222,7 +225,8 @@
                         <TextBlock Text="Layout:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <ComboBox ItemsSource="{Binding AtlasModes}" 
                       SelectedItem="{Binding SelectedAtlasMode}"
-                      Width="100"/>
+                      Width="100"
+                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
                     </StackPanel>
 
                     <!-- Resolution -->
@@ -230,7 +234,8 @@
                         <TextBlock Text="Resolution:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <ComboBox ItemsSource="{Binding AtlasResolutions}" 
                       SelectedItem="{Binding SelectedAtlasResolution}"
-                      Width="110"/>
+                      Width="110"
+                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>
@@ -252,22 +257,22 @@
             <!-- ACTIONS -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                 <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}" 
-            Command="{Binding ConvertCommand}" 
-            IsEnabled="{Binding IsGeneratingAtlas, Converter={StaticResource BoolToInverseConverter}}"
-            Style="{StaticResource PrimaryButtonStyle}"
-            Height="35"
-            FontSize="13"
-            MinWidth="120"
-            Margin="0,0,10,0"/>
+                    Command="{Binding ConvertCommand}" 
+                    IsEnabled="{Binding IsGeneratingAtlas, Converter={StaticResource BoolToInverseConverter}}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Height="35"
+                    FontSize="13"
+                    MinWidth="120"
+                    Margin="0,0,10,0"/>
 
                 <Button Content="{Binding IsGeneratingAtlas, Converter={StaticResource GenerateAtlasButtonTextConverter}}" 
-            Command="{Binding GenerateAtlasCommand}" 
-            IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-            Style="{StaticResource AlternativeButtonStyle}"
-            Height="35"
-            FontSize="13"
-            MinWidth="150"
-            Margin="10,0,0,0"/>
+                    Command="{Binding GenerateAtlasCommand}" 
+                    IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                    Style="{StaticResource AlternativeButtonStyle}"
+                    Height="35"
+                    FontSize="13"
+                    MinWidth="150"
+                    Margin="10,0,0,0"/>
             </StackPanel>
 
             <UniformGrid Rows="1" Columns="3">
