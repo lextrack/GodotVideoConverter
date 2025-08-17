@@ -332,7 +332,7 @@ namespace GodotVideoConverter.ViewModels
                     }
                     else
                     {
-                        StatusMessage = $"Invalid video file: {Path.GetFileName(file)}";
+                        StatusMessage = $"Invalid video file or ffmpeg and its resources are not found in the root folder";
                     }
                 }
             }
