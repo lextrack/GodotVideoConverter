@@ -142,13 +142,15 @@ namespace GodotVideoConverter.Services
             return videoInfo.IsValid;
         }
 
-        public async Task ConvertToSpriteAtlasAsync(string inputFile, string outputFile, int fps, string scaleFilter, IProgress<int> progress)
+        // Método principal actualizado con validaciones de tamaño
+        public async Task ConvertToSpriteAtlasAsync(string inputFile, string outputFile, int fps, string scaleFilter, string atlasMode, IProgress<int> progress)
         {
             string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
 
             try
             {
+                // Extraer frames del video
                 string frameExtractArgs = $"-i \"{inputFile}\" -vf \"fps={fps}";
                 if (!string.IsNullOrEmpty(scaleFilter))
                 {
@@ -170,30 +172,166 @@ namespace GodotVideoConverter.Services
 
                 await extractProcess.WaitForExitAsync();
 
-                var frames = Directory.GetFiles(tempDir, "frame_*.png").OrderBy(f => f).ToArray();
-                if (frames.Length == 0) return;
+                // Obtener archivos de frames ordenados
+                var frameFiles = Directory.GetFiles(tempDir, "frame_*.png");
+                Array.Sort(frameFiles, (x, y) => string.Compare(Path.GetFileName(x), Path.GetFileName(y)));
 
-                using var firstFrame = System.Drawing.Image.FromFile(frames[0]);
-                int cols = (int)Math.Ceiling(Math.Sqrt(frames.Length));
-                int rows = (int)Math.Ceiling((double)frames.Length / cols);
+                if (frameFiles.Length == 0) return;
 
-                using var atlas = new System.Drawing.Bitmap(firstFrame.Width * cols, firstFrame.Height * rows);
-                using var graphics = System.Drawing.Graphics.FromImage(atlas);
+                // Cargar el primer frame para obtener dimensiones
+                using var firstFrame = System.Drawing.Image.FromFile(frameFiles[0]);
+                int frameWidth = firstFrame.Width;
+                int frameHeight = firstFrame.Height;
 
-                for (int i = 0; i < frames.Length; i++)
+                // Calcular layout según el modo seleccionado con validaciones
+                var layoutInfo = CalculateAtlasLayout(frameFiles.Length, atlasMode, frameWidth, frameHeight);
+                int cols = layoutInfo.cols;
+                int rows = layoutInfo.rows;
+
+                // Validar que las dimensiones no excedan los límites
+                long totalWidth = (long)frameWidth * cols;
+                long totalHeight = (long)frameHeight * rows;
+
+                // Límites de GDI+ (aproximadamente 65535 píxeles en cualquier dimensión)
+                const int MAX_DIMENSION = 32767; // Usar un límite más conservador
+
+                if (totalWidth > MAX_DIMENSION || totalHeight > MAX_DIMENSION)
                 {
-                    int col = i % cols;
-                    int row = i / cols;
-                    using var frame = System.Drawing.Image.FromFile(frames[i]);
-                    graphics.DrawImage(frame, col * firstFrame.Width, row * firstFrame.Height);
-                    progress.Report((int)((i + 1) * 100 / frames.Length));
+                    throw new InvalidOperationException($"El atlas resultante sería demasiado grande ({totalWidth}x{totalHeight}). " +
+                                                      $"Límite máximo: {MAX_DIMENSION} píxeles por dimensión. " +
+                                                      "Considera usar menos frames, menor resolución, o modo Grid.");
                 }
 
+                // Crear el atlas
+                using var atlas = new System.Drawing.Bitmap((int)totalWidth, (int)totalHeight);
+                using var graphics = System.Drawing.Graphics.FromImage(atlas);
+                graphics.Clear(System.Drawing.Color.Transparent);
+
+                // Colocar cada frame en su posición
+                for (int i = 0; i < frameFiles.Length; i++)
+                {
+                    var position = GetFramePosition(i, cols, rows, atlasMode);
+                    int col = position.col;
+                    int row = position.row;
+
+                    using var frame = System.Drawing.Image.FromFile(frameFiles[i]);
+                    graphics.DrawImage(frame, col * frameWidth, row * frameHeight);
+
+                    // Reportar progreso
+                    progress?.Report((int)((i + 1) * 100.0 / frameFiles.Length));
+                }
+
+                // Guardar el atlas
                 atlas.Save(outputFile, System.Drawing.Imaging.ImageFormat.Png);
             }
             finally
             {
-                Directory.Delete(tempDir, true);
+                // Limpiar archivos temporales
+                if (Directory.Exists(tempDir))
+                {
+                    try
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
+                    catch
+                    {
+                        // Ignorar errores de limpieza
+                    }
+                }
+            }
+        }
+
+        // Método auxiliar para calcular el layout del atlas CON VALIDACIONES
+        private (int cols, int rows) CalculateAtlasLayout(int frameCount, string atlasMode, int frameWidth, int frameHeight)
+        {
+            if (string.IsNullOrEmpty(atlasMode))
+                atlasMode = "Grid";
+
+            const int MAX_DIMENSION = 32767; // Límite conservador para GDI+
+
+            switch (atlasMode.ToLower())
+            {
+                case "horizontal":
+                    // Limitar el número de columnas para evitar atlas demasiado anchos
+                    int maxCols = MAX_DIMENSION / frameWidth;
+                    if (frameCount <= maxCols)
+                    {
+                        return (frameCount, 1);  // Una sola fila si cabe
+                    }
+                    else
+                    {
+                        // Si hay demasiados frames, crear múltiples filas
+                        int cols = maxCols;
+                        int rows = (int)Math.Ceiling((double)frameCount / cols);
+                        return (cols, rows);
+                    }
+
+                case "vertical":
+                    // Limitar el número de filas para evitar atlas demasiado altos
+                    int maxRows = MAX_DIMENSION / frameHeight;
+                    if (frameCount <= maxRows)
+                    {
+                        return (1, frameCount);  // Una sola columna si cabe
+                    }
+                    else
+                    {
+                        // Si hay demasiados frames, crear múltiples columnas
+                        int rows = maxRows;
+                        int cols = (int)Math.Ceiling((double)frameCount / rows);
+                        return (cols, rows);
+                    }
+
+                case "grid":
+                default:
+                    // Modo grid: crear una cuadrícula lo más cuadrada posible
+                    int gridCols = (int)Math.Ceiling(Math.Sqrt(frameCount));
+                    int gridRows = (int)Math.Ceiling((double)frameCount / gridCols);
+
+                    // Verificar que no exceda los límites
+                    if (gridCols * frameWidth > MAX_DIMENSION || gridRows * frameHeight > MAX_DIMENSION)
+                    {
+                        // Recalcular con límites más estrictos
+                        int maxGridCols = MAX_DIMENSION / frameWidth;
+                        int maxGridRows = MAX_DIMENSION / frameHeight;
+
+                        gridCols = Math.Min(gridCols, maxGridCols);
+                        gridRows = (int)Math.Ceiling((double)frameCount / gridCols);
+
+                        if (gridRows > maxGridRows)
+                        {
+                            gridRows = maxGridRows;
+                            gridCols = (int)Math.Ceiling((double)frameCount / gridRows);
+                        }
+                    }
+
+                    return (gridCols, gridRows);
+            }
+        }
+
+        // Método auxiliar para obtener la posición de cada frame (sin cambios)
+        private (int col, int row) GetFramePosition(int frameIndex, int totalCols, int totalRows, string atlasMode)
+        {
+            if (string.IsNullOrEmpty(atlasMode))
+                atlasMode = "Grid";
+
+            switch (atlasMode.ToLower())
+            {
+                case "horizontal":
+                    int col = frameIndex % totalCols;
+                    int row = frameIndex / totalCols;
+                    return (col, row);
+
+                case "vertical":
+                    int colVert = frameIndex / totalRows;
+                    int rowVert = frameIndex % totalRows;
+                    return (colVert, rowVert);
+
+                case "grid":
+                default:
+                    // Distribución en grilla: de izquierda a derecha, de arriba hacia abajo
+                    int colGrid = frameIndex % totalCols;
+                    int rowGrid = frameIndex / totalCols;
+                    return (colGrid, rowGrid);
             }
         }
 
