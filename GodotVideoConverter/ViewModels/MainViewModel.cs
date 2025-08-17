@@ -393,12 +393,12 @@ namespace GodotVideoConverter.ViewModels
                             extension = ".mp4";
                             codecVideo = SelectedQuality switch
                             {
-                                "Ultra" => "-vcodec libx264 -crf 15 -preset slower",
-                                "High" => "-vcodec libx264 -crf 18 -preset slow",
-                                "Balanced" => "-vcodec libx264 -crf 23 -preset medium",
-                                "Optimized" => "-vcodec libx264 -crf 28 -preset fast",
-                                "Tiny" => "-vcodec libx264 -crf 35 -preset veryfast",
-                                _ => "-vcodec libx264 -crf 23 -preset medium"
+                                "Ultra" => "-c:v libx264 -crf 15 -preset slower -profile:v high -level 4.1",
+                                "High" => "-c:v libx264 -crf 18 -preset slow -profile:v high -level 4.1",
+                                "Balanced" => "-c:v libx264 -crf 23 -preset medium -profile:v main -level 4.0",
+                                "Optimized" => "-c:v libx264 -crf 28 -preset fast -profile:v main -level 3.1",
+                                "Tiny" => "-c:v libx264 -crf 32 -preset veryfast -profile:v baseline -level 3.0",
+                                _ => "-c:v libx264 -crf 23 -preset medium -profile:v main -level 4.0"
                             };
                             codecAudio = KeepAudio ? "-acodec aac -b:a 128k" : "-an";
                             break;
@@ -407,12 +407,12 @@ namespace GodotVideoConverter.ViewModels
                             extension = ".webm";
                             codecVideo = SelectedQuality switch
                             {
-                                "Ultra" => "-vcodec libvpx-vp9 -crf 10 -b:v 0 -cpu-used 0",
-                                "High" => "-vcodec libvpx-vp9 -crf 15 -b:v 0 -cpu-used 1",
-                                "Balanced" => "-vcodec libvpx-vp9 -crf 25 -b:v 0 -cpu-used 2",
-                                "Optimized" => "-vcodec libvpx-vp9 -crf 35 -b:v 0 -cpu-used 4",
-                                "Tiny" => "-vcodec libvpx-vp9 -crf 45 -b:v 0 -cpu-used 8",
-                                _ => "-vcodec libvpx-vp9 -crf 25 -b:v 0 -cpu-used 2"
+                                "Ultra" => "-c:v libvpx-vp9 -crf 10 -b:v 0 -cpu-used 0 -row-mt 1 -tile-columns 2",
+                                "High" => "-c:v libvpx-vp9 -crf 15 -b:v 0 -cpu-used 1 -row-mt 1 -tile-columns 1",
+                                "Balanced" => "-c:v libvpx-vp9 -crf 25 -b:v 0 -cpu-used 2 -row-mt 1",
+                                "Optimized" => "-c:v libvpx-vp9 -crf 32 -b:v 0 -cpu-used 4 -row-mt 1",
+                                "Tiny" => "-c:v libvpx-vp9 -crf 40 -b:v 0 -cpu-used 5 -deadline realtime",
+                                _ => "-c:v libvpx-vp9 -crf 25 -b:v 0 -cpu-used 2 -row-mt 1"
                             };
                             codecAudio = KeepAudio ? "-acodec libopus -b:a 96k" : "-an";
                             break;
@@ -421,12 +421,12 @@ namespace GodotVideoConverter.ViewModels
                             extension = ".ogv";
                             string baseTheoraArgs = SelectedQuality switch
                             {
-                                "Ultra" => "-c:v libtheora -q:v 8 -threads 0 -speed 0",
-                                "High" => "-c:v libtheora -q:v 7 -threads 0 -speed 1",
-                                "Balanced" => "-c:v libtheora -q:v 6 -threads 0 -speed 2",
-                                "Optimized" => "-c:v libtheora -q:v 5 -threads 0 -speed 3",
-                                "Tiny" => "-c:v libtheora -q:v 3 -threads 0 -speed 4",
-                                _ => "-c:v libtheora -q:v 6 -threads 0 -speed 2"
+                                "Ultra" => "-c:v libtheora -q:v 8 -qmin 6 -qmax 10 -threads 0",
+                                "High" => "-c:v libtheora -q:v 7 -qmin 4 -qmax 9 -threads 0",
+                                "Balanced" => "-c:v libtheora -q:v 6 -qmin 3 -qmax 8 -threads 0",
+                                "Optimized" => "-c:v libtheora -q:v 5 -qmin 2 -qmax 7 -threads 0",
+                                "Tiny" => "-c:v libtheora -q:v 3 -qmin 1 -qmax 5 -threads 0",
+                                _ => "-c:v libtheora -q:v 6 -qmin 3 -qmax 8 -threads 0"
                             };
 
                             codecVideo = baseTheoraArgs;

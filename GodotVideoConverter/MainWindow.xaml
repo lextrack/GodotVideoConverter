@@ -145,7 +145,7 @@
                     </Border>
                     <TextBlock Text="Drag files here or use menu to add them" 
                                FontStyle="Italic" 
-                               Foreground="#555" 
+                               Foreground="#363636" 
                                FontSize="12" 
                                Margin="0,3,0,0" 
                                HorizontalAlignment="Center"/>
@@ -198,10 +198,10 @@
                          BorderBrush="#CCCCCC"
                          Margin="0,0,0,8"/>
             <TextBlock Text="{Binding StatusMessage}" 
-                       Margin="0,0,0,8" 
+                       Margin="0,0,0,10" 
                        TextWrapping="Wrap"
-                       FontSize="12"
-                       Foreground="#555"/>
+                       FontSize="13"
+                       Foreground="#363636"/>
 
             <!-- ACTIONS -->
             <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}" 
