@@ -106,5 +106,41 @@ namespace GodotVideoConverter.Properties {
                 this["Fps"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int AtlasFps {
+            get {
+                return ((int)(this["AtlasFps"]));
+            }
+            set {
+                this["AtlasFps"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Grid")]
+        public string SelectedAtlasMode {
+            get {
+                return ((string)(this["SelectedAtlasMode"]));
+            }
+            set {
+                this["SelectedAtlasMode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Keep Original")]
+        public string SelectedAtlasResolution {
+            get {
+                return ((string)(this["SelectedAtlasResolution"]));
+            }
+            set {
+                this["SelectedAtlasResolution"] = value;
+            }
+        }
     }
 }

@@ -23,5 +23,14 @@
 		<Setting Name="Fps" Type="System.String" Scope="User">
 			<Value Profile="(Default)" />
 		</Setting>
+		<Setting Name="AtlasFps" Type="System.Int32" Scope="User">
+			<Value Profile="(Default)">10</Value>
+		</Setting>
+		<Setting Name="SelectedAtlasMode" Type="System.String" Scope="User">
+			<Value Profile="(Default)">Grid</Value>
+		</Setting>
+		<Setting Name="SelectedAtlasResolution" Type="System.String" Scope="User">
+			<Value Profile="(Default)">Keep Original</Value>
+		</Setting>
 	</Settings>
 </SettingsFile>

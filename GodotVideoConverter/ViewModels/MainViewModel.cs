@@ -168,6 +168,10 @@ namespace GodotVideoConverter.ViewModels
                 KeepAudio = Properties.Settings.Default.KeepAudio;
                 Fps = Properties.Settings.Default.Fps;
 
+                AtlasFps = Properties.Settings.Default.AtlasFps;
+                SelectedAtlasMode = Properties.Settings.Default.SelectedAtlasMode;
+                SelectedAtlasResolution = Properties.Settings.Default.SelectedAtlasResolution;
+
                 if (string.IsNullOrEmpty(OutputFolder))
                 {
                     OutputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output");
@@ -192,6 +196,19 @@ namespace GodotVideoConverter.ViewModels
                 {
                     Fps = "30";
                 }
+
+                if (AtlasFps <= 0)
+                {
+                    AtlasFps = 10;
+                }
+                if (string.IsNullOrEmpty(SelectedAtlasMode))
+                {
+                    SelectedAtlasMode = "Grid";
+                }
+                if (string.IsNullOrEmpty(SelectedAtlasResolution))
+                {
+                    SelectedAtlasResolution = "Keep Original";
+                }
             }
             catch
             {
@@ -208,6 +225,10 @@ namespace GodotVideoConverter.ViewModels
             SelectedOgvMode = "Standard";
             Fps = "30";
             KeepAudio = false;
+
+            AtlasFps = 10;
+            SelectedAtlasMode = "Grid";
+            SelectedAtlasResolution = "Keep Original";
         }
 
         private void SaveSettingsDelayed()
@@ -228,6 +249,11 @@ namespace GodotVideoConverter.ViewModels
                 Properties.Settings.Default.SelectedOgvMode = SelectedOgvMode ?? "";
                 Properties.Settings.Default.KeepAudio = KeepAudio;
                 Properties.Settings.Default.Fps = Fps ?? "";
+
+                Properties.Settings.Default.AtlasFps = AtlasFps;
+                Properties.Settings.Default.SelectedAtlasMode = SelectedAtlasMode ?? "";
+                Properties.Settings.Default.SelectedAtlasResolution = SelectedAtlasResolution ?? "";
+
                 Properties.Settings.Default.Save();
             }
             catch { }
@@ -272,6 +298,21 @@ namespace GodotVideoConverter.ViewModels
         partial void OnSelectedFileIndexChanged(int value)
         {
             UpdateSelectedVideoInfo();
+        }
+
+        partial void OnAtlasFpsChanged(int value)
+        {
+            SaveSettingsDelayed();
+        }
+
+        partial void OnSelectedAtlasModeChanged(string? value)
+        {
+            SaveSettingsDelayed();
+        }
+
+        partial void OnSelectedAtlasResolutionChanged(string? value)
+        {
+            SaveSettingsDelayed();
         }
 
         private void UpdateOgvModeAvailability()
