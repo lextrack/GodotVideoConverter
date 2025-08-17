@@ -315,41 +315,184 @@ namespace GodotVideoConverter.Services
 
         public async Task ConvertAsync(string inputFile, string outputFile, string arguments, double totalSeconds, IProgress<int> progress)
         {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(VideoConversionService));
+
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = cancellationTokenSource.Token;
+
             var psi = new ProcessStartInfo
             {
                 FileName = _ffmpegPath,
                 Arguments = arguments,
                 RedirectStandardError = true,
+                RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
 
             _currentProcess = Process.Start(psi);
-            if (_currentProcess == null) return;
+            if (_currentProcess == null)
+                throw new InvalidOperationException("Failed to start FFmpeg process");
 
-            var regex = new Regex(@"time=(\d+):(\d+):(\d+\.?\d*)");
-
-            while (!_currentProcess.StandardError.EndOfStream)
+            try
             {
-                string? line = await _currentProcess.StandardError.ReadLineAsync();
-                if (line == null) continue;
+                var timeRegex = new Regex(@"time=(\d+):(\d+):(\d+(?:\.\d+)?)", RegexOptions.Compiled);
+                var lastProgress = 0;
+                var progressLock = new object();
 
-                var match = regex.Match(line);
-                if (match.Success)
+                var stderrTask = Task.Run(async () =>
                 {
-                    double h = double.Parse(match.Groups[1].Value);
-                    double m = double.Parse(match.Groups[2].Value);
-                    double s = double.Parse(match.Groups[3].Value);
+                    try
+                    {
+                        using var reader = _currentProcess.StandardError;
+                        string? line;
 
-                    double current = h * 3600 + m * 60 + s;
-                    int percent = (int)(current / totalSeconds * 100);
-                    progress.Report(Math.Min(percent, 100));
+                        while ((line = await reader.ReadLineAsync()) != null)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+
+                            if (string.IsNullOrEmpty(line)) continue;
+
+                            var match = timeRegex.Match(line);
+                            if (match.Success)
+                            {
+                                try
+                                {
+                                    double hours = double.Parse(match.Groups[1].Value);
+                                    double minutes = double.Parse(match.Groups[2].Value);
+                                    double seconds = double.Parse(match.Groups[3].Value);
+
+                                    double currentSeconds = hours * 3600 + minutes * 60 + seconds;
+                                    int percentComplete = totalSeconds > 0
+                                        ? (int)Math.Min((currentSeconds / totalSeconds) * 100, 100)
+                                        : 0;
+
+                                    lock (progressLock)
+                                    {
+                                        if (percentComplete > lastProgress)
+                                        {
+                                            lastProgress = percentComplete;
+                                            progress?.Report(percentComplete);
+                                        }
+                                    }
+                                }
+                                catch (FormatException)
+                                {
+                                    continue;
+                                }
+                            }
+
+                            if (line.Contains("No such file or directory") ||
+                                line.Contains("Invalid data found") ||
+                                line.Contains("Permission denied"))
+                            {
+                                throw new InvalidOperationException($"FFmpeg error: {line}");
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                    }
+                    catch (Exception ex) when (!(ex is OperationCanceledException))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error reading FFmpeg stderr: {ex.Message}");
+                    }
+                }, cancellationToken);
+
+                var stdoutTask = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var reader = _currentProcess.StandardOutput;
+                        while (await reader.ReadLineAsync() != null)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+
+                    }
+                }, cancellationToken);
+
+                var processTask = Task.Run(async () =>
+                {
+                    await _currentProcess.WaitForExitAsync(cancellationToken);
+                }, cancellationToken);
+
+                var timeoutTask = Task.Delay(TimeSpan.FromMinutes(30), cancellationToken);
+                var completedTask = await Task.WhenAny(processTask, timeoutTask);
+
+                if (completedTask == timeoutTask)
+                {
+                    throw new TimeoutException("FFmpeg conversion timed out after 30 minutes");
+                }
+
+                cancellationTokenSource.Cancel();
+
+                try
+                {
+                    await Task.WhenAll(stderrTask, stdoutTask);
+                }
+                catch (OperationCanceledException)
+                {
+                }
+
+                if (_currentProcess.ExitCode != 0)
+                {
+                    throw new InvalidOperationException($"FFmpeg conversion failed with exit code {_currentProcess.ExitCode}");
+                }
+
+                if (!File.Exists(outputFile))
+                {
+                    throw new InvalidOperationException("Output file was not created");
+                }
+
+                var fileInfo = new FileInfo(outputFile);
+                if (fileInfo.Length == 0)
+                {
+                    File.Delete(outputFile);
+                    throw new InvalidOperationException("Output file is empty - conversion may have failed");
+                }
+
+                progress?.Report(100);
+            }
+            catch (OperationCanceledException)
+            {
+                if (File.Exists(outputFile))
+                {
+                    try { File.Delete(outputFile); } catch { }
+                }
+                throw;
+            }
+            catch (Exception)
+            {
+                if (File.Exists(outputFile))
+                {
+                    try { File.Delete(outputFile); } catch { }
+                }
+                throw;
+            }
+            finally
+            {
+                try
+                {
+                    if (_currentProcess != null && !_currentProcess.HasExited)
+                    {
+                        _currentProcess.Kill();
+                    }
+                }
+                catch
+                {
+
+                }
+                finally
+                {
+                    _currentProcess?.Dispose();
+                    _currentProcess = null;
                 }
             }
-
-            await _currentProcess.WaitForExitAsync();
-            progress.Report(100);
-            _currentProcess = null;
         }
 
         public void CancelCurrentConversion()
@@ -358,14 +501,27 @@ namespace GodotVideoConverter.Services
             {
                 if (_currentProcess != null && !_currentProcess.HasExited)
                 {
-                    _currentProcess.Kill();
-                    _currentProcess.WaitForExit(1000);
-                    _currentProcess = null;
+                    _currentProcess.CloseMainWindow();
+
+                    if (!_currentProcess.WaitForExit(2000))
+                    {
+                        _currentProcess.Kill();
+                        _currentProcess.WaitForExit(1000);
+                    }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                System.Diagnostics.Debug.WriteLine($"Error cancelling conversion: {ex.Message}");
+            }
+            finally
+            {
+                try
+                {
+                    _currentProcess?.Dispose();
+                }
+                catch { }
+                _currentProcess = null;
             }
         }
 

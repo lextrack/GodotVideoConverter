@@ -25,11 +25,13 @@
             <LineBreak/>
             <Run Text="- Multiple quality presets"/>
             <LineBreak/>
-            <Run Text="- Resolution scaling"/>
+            <Run Text="- Resolution selector"/>
+            <LineBreak/>
+            <Run Text="- Atlas sprite generator"/>
             <LineBreak/>
             <Run Text="- FPS adjustment"/>
             <LineBreak/>
-            <Run Text="- Godot-specific optimization modes"/>
+            <Run Text="- OGV-specific optimization modes"/>
             <LineBreak/><LineBreak/>
             <Run Text="Developed by Lextrack"/>
             <LineBreak/><LineBreak/>
