@@ -437,16 +437,16 @@ namespace GodotVideoConverter.ViewModels
                                 additionalArgs = SelectedOgvMode switch
                                 {
                                     "Constant FPS (CFR)" =>
-                                        $"-pix_fmt yuv420p -g 15 -keyint_min 15 -r {Fps} -vsync cfr",
+                                        $"-pix_fmt yuv420p -g 15 -keyint_min 15 -vsync cfr",
 
                                     "Optimized for weak hardware" =>
-                                        "-pix_fmt yuv420p -g 60 -keyint_min 30 -bf 0 -threads 2",
+                                        "-pix_fmt yuv420p -g 60 -keyint_min 30 -bf 0 -threads 4 -slices 4",
 
                                     "Ideal Loop" =>
                                         "-pix_fmt yuv420p -g 1 -keyint_min 1 -avoid_negative_ts make_zero -fflags +genpts",
 
                                     "Streaming Optimized" =>
-                                        "-pix_fmt yuv420p -g 15 -keyint_min 5",
+                                        "-pix_fmt yuv420p -g 15 -keyint_min 5 -bufsize 2000k -maxrate 1500k",
 
                                     "Mobile Optimized" =>
                                         "-pix_fmt yuv420p -g 60 -keyint_min 30 -bf 0 -maxrate 800k -bufsize 1600k",
