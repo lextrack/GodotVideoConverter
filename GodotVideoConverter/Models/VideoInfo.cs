@@ -15,5 +15,6 @@ namespace GodotVideoConverter.Models
         public bool HasAudio { get; set; }
         public string AspectRatio => Width > 0 && Height > 0 ? $"{Width}:{Height}" : "Unknown";
         public string Resolution => Width > 0 && Height > 0 ? $"{Width}x{Height}" : "Unknown";
+        public int TotalFrames { get; set; }
     }
 }

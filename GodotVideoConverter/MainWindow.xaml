@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:GodotVideoConverter.ViewModels"
         xmlns:local="clr-namespace:GodotVideoConverter"
-        Title="Godot Video Converter" Height="800" Width="700" WindowStartupLocation="CenterScreen"
+        Title="Godot Video Converter" Height="800" Width="750" WindowStartupLocation="CenterScreen"
         AllowDrop="True"
         DragOver="Window_DragOver"
         Drop="Window_Drop"
@@ -17,6 +17,8 @@
         <local:BoolToInverseConverter x:Key="BoolToInverseConverter"/>
         <local:ConvertButtonTextConverter x:Key="ConvertButtonTextConverter"/>
         <local:BooleanAndConverter x:Key="BooleanAndConverter"/>
+        <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <local:GenerateAtlasButtonTextConverter x:Key="GenerateAtlasButtonTextConverter"/>
 
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -189,6 +191,42 @@
                 </StackPanel>
             </Border>
 
+            <GroupBox Header="Sprite Atlas" Margin="0,0,0,8" Padding="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Frames -->
+                    <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
+                        <TextBlock Text="Frames:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Text="{Binding AtlasFps}" Width="60" MaxLength="2"/>
+                    </StackPanel>
+
+                    <!-- Layout -->
+                    <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <TextBlock Text="Layout:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox ItemsSource="{Binding AtlasModes}" 
+                      SelectedItem="{Binding SelectedAtlasMode}"
+                      Width="80"/>
+                    </StackPanel>
+
+                    <!-- Resolution -->
+                    <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0">
+                        <TextBlock Text="Resolution:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <ComboBox ItemsSource="{Binding AtlasResolutions}" 
+                      SelectedItem="{Binding SelectedAtlasResolution}"
+                      Width="110"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
             <!-- PROGRESS -->
             <ProgressBar Minimum="0" 
                          Maximum="100" 
@@ -204,15 +242,25 @@
                        Foreground="#363636"/>
 
             <!-- ACTIONS -->
-            <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}" 
-                    Command="{Binding ConvertCommand}" 
-                    IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Height="35"
-                    FontSize="13"
-                    HorizontalAlignment="Center"
-                    MinWidth="120"
-                    Margin="0,0,0,10"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}" 
+            Command="{Binding ConvertCommand}" 
+            IsEnabled="{Binding IsGeneratingAtlas, Converter={StaticResource BoolToInverseConverter}}"
+            Style="{StaticResource PrimaryButtonStyle}"
+            Height="35"
+            FontSize="13"
+            MinWidth="120"
+            Margin="0,0,10,0"/>
+
+                <Button Content="{Binding IsGeneratingAtlas, Converter={StaticResource GenerateAtlasButtonTextConverter}}" 
+            Command="{Binding GenerateAtlasCommand}" 
+            IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+            Style="{StaticResource PrimaryButtonStyle}"
+            Height="35"
+            FontSize="13"
+            MinWidth="150"
+            Margin="10,0,0,0"/>
+            </StackPanel>
 
             <UniformGrid Rows="1" Columns="3">
                 <Button Content="Clear List" 

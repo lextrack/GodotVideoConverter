@@ -76,4 +76,34 @@ namespace GodotVideoConverter
             throw new NotImplementedException();
         }
     }
+
+    public class BoolToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            return (value is bool b && b) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static BoolToVisibilityConverter Instance { get; } = new();
+    }
+
+    public class GenerateAtlasButtonTextConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool isGenerating)
+                return isGenerating ? "Generating..." : "Generate Atlas";
+            return "Generate Atlas";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

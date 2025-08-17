@@ -34,6 +34,11 @@ namespace GodotVideoConverter.ViewModels
         [ObservableProperty] private string videoInfo = "";
         [ObservableProperty] private string recommendations = "";
         [ObservableProperty] private int selectedFileIndex = -1;
+        [ObservableProperty] private int atlasFps = 10;
+        [ObservableProperty] private string? selectedAtlasMode = "Grid";
+        [ObservableProperty] private string? selectedAtlasResolution = "Keep Original";
+        [ObservableProperty] private bool keepOriginalAtlasResolution = true;
+        [ObservableProperty] private bool isGeneratingAtlas = false;
 
         public void Dispose()
         {
@@ -65,6 +70,27 @@ namespace GodotVideoConverter.ViewModels
             "3840x2160", "1920x1080", "1366x768", "1280x720", "1280x960", "1024x768", "854x480", "800x600", "640x360", "640x480", "512x512", "480x270", "426x240", "384x216", "256x256", "Keep original"
         };
 
+        public ObservableCollection<string> AtlasResolutions { get; } = new()
+        {
+            "Low",
+            "Medium",
+            "High",
+            "Very High",
+            "Keep Original"
+        };
+
+        private string GetAtlasResolutionValue(string selectedResolution)
+        {
+            return selectedResolution switch
+            {
+                "Low" => "64x64",
+                "Medium" => "128x128",
+                "High" => "256x256",
+                "Very High" => "512x512",
+                _ => ""
+            };
+        }
+
         public ObservableCollection<string> Qualities { get; } = new()
         {
             "Ultra", "High", "Balanced", "Optimized", "Tiny"
@@ -73,6 +99,11 @@ namespace GodotVideoConverter.ViewModels
         public ObservableCollection<string> OgvModes { get; } = new()
         {
             "Standard", "Constant FPS (CFR)", "Optimized for weak hardware", "Ideal Loop", "Streaming Optimized", "Mobile Optimized"
+        };
+
+        public ObservableCollection<string> AtlasModes { get; } = new()
+        {
+            "Grid", "Horizontal", "Vertical"
         };
 
         public MainViewModel()
@@ -94,6 +125,32 @@ namespace GodotVideoConverter.ViewModels
             LoadSettings();
             UpdateOgvModeAvailability();
             _isInitialized = true;
+        }
+
+        private async Task ConvertToSpriteAtlasAsync(string inputFile, string outputFolder, string fileName)
+        {
+            string outFile = Path.Combine(outputFolder, $"{fileName}_atlas.png");
+            int counter = 1;
+            while (File.Exists(outFile))
+            {
+                outFile = Path.Combine(outputFolder, $"{fileName}_atlas_{counter}.png");
+                counter++;
+            }
+
+            string scaleFilter = "";
+            if (!string.IsNullOrEmpty(SelectedAtlasResolution) &&
+                SelectedAtlasResolution != "Keep Original")
+            {
+                string resolutionValue = GetAtlasResolutionValue(SelectedAtlasResolution);
+                var parts = resolutionValue.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                {
+                    scaleFilter = $"scale={w}:{h}:force_original_aspect_ratio=decrease";
+                }
+            }
+
+            var progressHandler = new Progress<int>(p => Progress = p);
+            await _service.ConvertToSpriteAtlasAsync(inputFile, outFile, AtlasFps, scaleFilter, progressHandler);
         }
 
         private void LoadSettings()
@@ -361,6 +418,46 @@ namespace GodotVideoConverter.ViewModels
             catch (Exception ex)
             {
                 StatusMessage = $"Error opening output folder: {ex.Message}";
+            }
+        }
+
+        private string GetFileExtension()
+        {
+            return SelectedFormat switch
+            {
+                "MP4 (H.264/AAC)" => ".mp4",
+                "WebM (VP9/Opus)" => ".webm",
+                _ => ".ogv"
+            };
+        }
+
+        [RelayCommand]
+        private async Task GenerateAtlasAsync()
+        {
+            if (InputFiles.Count == 0)
+            {
+                StatusMessage = "No files selected for atlas generation.";
+                return;
+            }
+
+            IsGeneratingAtlas = true;
+
+            try
+            {
+                Directory.CreateDirectory(OutputFolder);
+
+                foreach (var file in InputFiles)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(file);
+                    await ConvertToSpriteAtlasAsync(file, OutputFolder, fileName);
+                    StatusMessage = $"Created sprite atlas: {fileName}_atlas.png";
+                }
+
+                StatusMessage = "All sprite atlases generated!";
+            }
+            finally
+            {
+                IsGeneratingAtlas = false;
             }
         }
 

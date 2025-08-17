@@ -142,6 +142,61 @@ namespace GodotVideoConverter.Services
             return videoInfo.IsValid;
         }
 
+        public async Task ConvertToSpriteAtlasAsync(string inputFile, string outputFile, int fps, string scaleFilter, IProgress<int> progress)
+        {
+            string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                string frameExtractArgs = $"-i \"{inputFile}\" -vf \"fps={fps}";
+                if (!string.IsNullOrEmpty(scaleFilter))
+                {
+                    frameExtractArgs += $",{scaleFilter}";
+                }
+                frameExtractArgs += $"\" \"{Path.Combine(tempDir, "frame_%04d.png")}\"";
+
+                var frameExtractPsi = new ProcessStartInfo
+                {
+                    FileName = _ffmpegPath,
+                    Arguments = frameExtractArgs,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var extractProcess = Process.Start(frameExtractPsi);
+                if (extractProcess == null) return;
+
+                await extractProcess.WaitForExitAsync();
+
+                var frames = Directory.GetFiles(tempDir, "frame_*.png").OrderBy(f => f).ToArray();
+                if (frames.Length == 0) return;
+
+                using var firstFrame = System.Drawing.Image.FromFile(frames[0]);
+                int cols = (int)Math.Ceiling(Math.Sqrt(frames.Length));
+                int rows = (int)Math.Ceiling((double)frames.Length / cols);
+
+                using var atlas = new System.Drawing.Bitmap(firstFrame.Width * cols, firstFrame.Height * rows);
+                using var graphics = System.Drawing.Graphics.FromImage(atlas);
+
+                for (int i = 0; i < frames.Length; i++)
+                {
+                    int col = i % cols;
+                    int row = i / cols;
+                    using var frame = System.Drawing.Image.FromFile(frames[i]);
+                    graphics.DrawImage(frame, col * firstFrame.Width, row * firstFrame.Height);
+                    progress.Report((int)((i + 1) * 100 / frames.Length));
+                }
+
+                atlas.Save(outputFile, System.Drawing.Imaging.ImageFormat.Png);
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
+        }
+
         public async Task ConvertAsync(string inputFile, string outputFile, string arguments, double totalSeconds, IProgress<int> progress)
         {
             var psi = new ProcessStartInfo
