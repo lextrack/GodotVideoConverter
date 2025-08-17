@@ -1,0 +1,234 @@
+﻿<Window x:Class="GodotVideoConverter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:GodotVideoConverter.ViewModels"
+        xmlns:local="clr-namespace:GodotVideoConverter"
+        Title="Godot Video Converter" Height="800" Width="700" WindowStartupLocation="CenterScreen"
+        AllowDrop="True"
+        DragOver="Window_DragOver"
+        Drop="Window_Drop"
+        Closing="Window_Closing">
+
+    <Window.DataContext>
+        <vm:MainViewModel/>
+    </Window.DataContext>
+
+    <Window.Resources>
+        <local:BoolToInverseConverter x:Key="BoolToInverseConverter"/>
+        <local:ConvertButtonTextConverter x:Key="ConvertButtonTextConverter"/>
+        <local:BooleanAndConverter x:Key="BooleanAndConverter"/>
+
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Margin" Value="0,8,0,3"/>
+        </Style>
+
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="MinWidth" Value="70"/>
+            <Setter Property="Background" Value="#F5F5F5"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#0078D4"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,8"/>
+        </Style>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="10">
+
+            <!-- CONVERSION SETTINGS -->
+            <GroupBox Header="Conversion Settings" Margin="0,0,0,8" Padding="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Left Column -->
+                    <StackPanel Grid.Column="0" Grid.Row="0">
+                        <TextBlock Text="Format:" Style="{StaticResource SectionHeaderStyle}"/>
+                        <ComboBox ItemsSource="{Binding Formats}" 
+                                  SelectedItem="{Binding SelectedFormat}" 
+                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                                  Margin="0,0,0,6"/>
+
+                        <TextBlock Text="Resolution:" Style="{StaticResource SectionHeaderStyle}"/>
+                        <ComboBox ItemsSource="{Binding Resolutions}" 
+                                  SelectedItem="{Binding SelectedResolution}"
+                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                                  Margin="0,0,0,6"/>
+                    </StackPanel>
+
+                    <!-- Right Column -->
+                    <StackPanel Grid.Column="2" Grid.Row="0">
+                        <TextBlock Text="Quality:" Style="{StaticResource SectionHeaderStyle}"/>
+                        <ComboBox ItemsSource="{Binding Qualities}" 
+                                  SelectedItem="{Binding SelectedQuality}"
+                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                                  Margin="0,0,0,6"/>
+
+                        <TextBlock Text="OGV Mode:" Style="{StaticResource SectionHeaderStyle}"/>
+                        <ComboBox ItemsSource="{Binding OgvModes}" 
+                                  SelectedItem="{Binding SelectedOgvMode}" 
+                                  Margin="0,0,0,6">
+                            <ComboBox.IsEnabled>
+                                <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                    <Binding Path="IsOgvModeEnabled"/>
+                                    <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                </MultiBinding>
+                            </ComboBox.IsEnabled>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <!-- Additional Options -->
+                    <StackPanel Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,8,0,0">
+                        <CheckBox Content="Keep Audio" 
+                                  IsChecked="{Binding KeepAudio}" 
+                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                                  VerticalAlignment="Center"
+                                  Margin="0,0,30,0"/>
+
+                        <TextBlock Text="FPS:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                        <TextBox Text="{Binding Fps}" 
+                                 Width="30" 
+                                 IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                                 VerticalAlignment="Center" 
+                                 MaxLength="2"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <!-- OUTPUT & FILES -->
+            <GroupBox Header="Output and Files" Margin="0,0,0,8" Padding="6">
+                <StackPanel>
+                    <TextBlock Text="Output Folder:" Style="{StaticResource SectionHeaderStyle}"/>
+                    <Grid Margin="0,0,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" 
+                                 Text="{Binding OutputFolder}" 
+                                 IsReadOnly="True" 
+                                 Margin="0,0,8,0"
+                                 Background="#F8F8F8"/>
+                        <Button Grid.Column="1" 
+                                Content="Browse..." 
+                                Command="{Binding BrowseOutputFolderCommand}" 
+                                IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                                Style="{StaticResource ButtonStyle}"/>
+                    </Grid>
+
+                    <TextBlock Text="Files:" Style="{StaticResource SectionHeaderStyle}"/>
+                    <Border BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="3">
+                        <ListBox ItemsSource="{Binding InputFiles}" 
+                                 Height="80" 
+                                 IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                                 SelectedIndex="{Binding SelectedFileIndex}"
+                                 Background="White"
+                                 BorderThickness="0"/>
+                    </Border>
+                    <TextBlock Text="Drag files here or use menu to add them" 
+                               FontStyle="Italic" 
+                               Foreground="#555" 
+                               FontSize="12" 
+                               Margin="0,3,0,0" 
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- INFO PANELS -->
+            <Border Background="#F0F5FF" 
+                    BorderBrush="#4682B4" 
+                    BorderThickness="1" 
+                    CornerRadius="3" 
+                    Margin="0,0,0,8"
+                    Padding="6"
+                    Visibility="{Binding VideoInfo, Converter={x:Static local:StringToVisibilityConverter.Instance}}">
+                <StackPanel>
+                    <TextBlock Text="📹 Video Information" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
+                    <Border Background="White" 
+                            BorderBrush="#90E0E0" 
+                            BorderThickness="1"
+                            Padding="5">
+                        <TextBlock Text="{Binding VideoInfo}" 
+                                   TextWrapping="Wrap" 
+                                   FontFamily="Consolas" 
+                                   FontSize="11"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#FFF8DC" 
+                    BorderBrush="#DAA820" 
+                    BorderThickness="1" 
+                    CornerRadius="3" 
+                    Padding="6"
+                    Margin="0,0,0,8"
+                    Visibility="{Binding Recommendations, Converter={x:Static local:StringToVisibilityConverter.Instance}}">
+                <StackPanel>
+                    <TextBlock Text="💡 Godot Recommendations" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
+                    <TextBlock Text="{Binding Recommendations}" 
+                               TextWrapping="Wrap" 
+                               FontSize="11"/>
+                </StackPanel>
+            </Border>
+
+            <!-- PROGRESS -->
+            <ProgressBar Minimum="0" 
+                         Maximum="100" 
+                         Value="{Binding Progress}" 
+                         Height="20" 
+                         BorderThickness="1"
+                         BorderBrush="#CCCCCC"
+                         Margin="0,0,0,8"/>
+            <TextBlock Text="{Binding StatusMessage}" 
+                       Margin="0,0,0,8" 
+                       TextWrapping="Wrap"
+                       FontSize="12"
+                       Foreground="#555"/>
+
+            <!-- ACTIONS -->
+            <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}" 
+                    Command="{Binding ConvertCommand}" 
+                    IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Height="35"
+                    FontSize="13"
+                    HorizontalAlignment="Center"
+                    MinWidth="120"
+                    Margin="0,0,0,10"/>
+
+            <UniformGrid Rows="1" Columns="3">
+                <Button Content="Clear List" 
+                        Command="{Binding ClearListCommand}" 
+                        IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                        Style="{StaticResource ButtonStyle}"
+                        Margin="0,0,3,0"/>
+                <Button Content="Open Output Folder" 
+                        Command="{Binding OpenOutputFolderCommand}" 
+                        Style="{StaticResource ButtonStyle}"
+                        Margin="3,0"/>
+                <Button Content="About" 
+                        Click="AboutButton_Click"
+                        Style="{StaticResource ButtonStyle}"
+                        Margin="3,0,0,0"/>
+            </UniformGrid>
+        </StackPanel>
+    </ScrollViewer>
+</Window>
