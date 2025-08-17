@@ -9,6 +9,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 - Game-oriented optimizations
 - Batch processing capabilities
 - Customizable output settings
+- Sprite atlas generation from videos
 
 ## ✨ Key Features
 
@@ -17,7 +18,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 | Format       | Codecs              | Primary Purpose         | Godot Support       | Recommended Usage          |
 |--------------|---------------------|-------------------------|--------------------------|---------------------------|
 | **OGV** (Recommended) | Theora/Vorbis | Native Godot integration | ✅ Full native support | All Godot projects |
-| **MP4** (Courtesy) | H.264/AAC | Cross-platform compatibility | ❌ Requires third-party plugins | Non-Godot use only |
+| **MP4** (Courtesy) | H.264/AAC | Cross-platform compatibility | ⚠️ Requires third-party plugins | Non-Godot use only |
 | **WebM** (Courtesy) | VP9/Opus | Web applications | ⚠️ Limited via plugins | Web exports/testing |
 
 **Important Notes:**
@@ -26,7 +27,20 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 - For Godot projects, OGV is strongly recommended for:
   - Guaranteed compatibility across all platforms
   - No additional plugin dependencies
-  - Consistent playback performance   |
+  - Consistent playback performance
+
+### Sprite Atlas Generation 🎨
+
+Convert videos into **sprite atlases** for 2D animations in Godot:
+
+| Layout Mode | Description | Best For |
+|-------------|-------------|----------|
+| **Grid** | Square arrangement (auto-calculated) | Character animations, general purpose |
+| **Horizontal** | Single row layout | Progress bars, UI strips |
+| **Vertical** | Single column layout | Character states, menus |
+
+**Resolution Options**: Low → Very High per frame
+**Use Cases**: Character cycles, UI effects, particle animations, game object states, etc
 
 ### OGV Optimization Modes (Technical Specifications)
 | Mode                      | GOP | Keyframe Interval | Best Performance On      |
@@ -56,6 +70,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 - **Output folder** customization
 - **Batch processing** of multiple files
 - **Presets manager** for frequent configurations
+- **Sprite atlas generator** with layout options
 
 ## ⚙️ Technical Specifications
 - **Resolution options**: 3840x2160 (4K) to 426x240 (240p)
@@ -63,6 +78,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 - **Audio options**: Preserve/remove audio tracks
 - **File handling**: Automatic duplicate prevention
 - **Settings**: Persist between sessions
+- **Atlas generation**: PNG output with customizable frame extraction
 
 ## 🎮 Why Use OGV in Godot?
 - **Native support**: Zero-configuration playback
@@ -77,10 +93,13 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 
 ## 🚀 Quick Start Guide
 1. **Add files**: Drag videos into the window or use file dialog
-2. **Configure**:
-   - Select format (OGV for Godot)
-   - Choose optimization mode
-   - Set quality preset
-3. **Convert**:
+2. **Choose output type**:
+   - **Video Conversion**: Convert to OGV/MP4/WebM
+   - **Sprite Atlas**: Generate PNG sprite sheets
+3. **Configure**:
+   - Select format/layout mode
+   - Choose optimization settings
+   - Set quality/resolution
+4. **Convert**:
    - Set output folder (default: ./output)
-   - Click "Convert"
+   - Click "Convert" or "Generate Atlas"
