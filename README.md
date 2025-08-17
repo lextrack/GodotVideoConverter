@@ -29,7 +29,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
   - No additional plugin dependencies
   - Consistent playback performance
 
-### Sprite Atlas Generation 🎨
+### 🎨 Sprite Atlas Generation
 
 Convert videos into **sprite atlases** for 2D animations in Godot:
 
