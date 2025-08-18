@@ -61,7 +61,7 @@ namespace GodotVideoConverter.ViewModels
                 }
                 if (string.IsNullOrEmpty(SelectedAtlasResolution))
                 {
-                    SelectedAtlasResolution = "Keep Original";
+                    SelectedAtlasResolution = "Medium";
                 }
             }
             catch
@@ -82,7 +82,7 @@ namespace GodotVideoConverter.ViewModels
 
             AtlasFps = 5;
             SelectedAtlasMode = "Grid";
-            SelectedAtlasResolution = "Keep Original";
+            SelectedAtlasResolution = "Medium";
         }
 
         private void SaveSettingsDelayed()

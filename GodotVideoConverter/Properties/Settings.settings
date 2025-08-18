@@ -1,36 +1,36 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
-	<Profiles />
-	<Settings>
-		<Setting Name="OutputFolder" Type="System.String" Scope="User">
-			<Value Profile="(Default)" />
-		</Setting>
-		<Setting Name="SelectedFormat" Type="System.String" Scope="User">
-			<Value Profile="(Default)" />
-		</Setting>
-		<Setting Name="SelectedResolution" Type="System.String" Scope="User">
-			<Value Profile="(Default)" />
-		</Setting>
-		<Setting Name="SelectedQuality" Type="System.String" Scope="User">
-			<Value Profile="(Default)" />
-		</Setting>
-		<Setting Name="SelectedOgvMode" Type="System.String" Scope="User">
-			<Value Profile="(Default)" />
-		</Setting>
-		<Setting Name="KeepAudio" Type="System.Boolean" Scope="User">
-			<Value Profile="(Default)">False</Value>
-		</Setting>
-		<Setting Name="Fps" Type="System.String" Scope="User">
-			<Value Profile="(Default)" />
-		</Setting>
-		<Setting Name="AtlasFps" Type="System.Int32" Scope="User">
-			<Value Profile="(Default)">10</Value>
-		</Setting>
-		<Setting Name="SelectedAtlasMode" Type="System.String" Scope="User">
-			<Value Profile="(Default)">Grid</Value>
-		</Setting>
-		<Setting Name="SelectedAtlasResolution" Type="System.String" Scope="User">
-			<Value Profile="(Default)">Keep Original</Value>
-		</Setting>
-	</Settings>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="GodotVideoConverter.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="OutputFolder" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SelectedFormat" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SelectedResolution" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SelectedQuality" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SelectedOgvMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="KeepAudio" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Fps" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="AtlasFps" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">5</Value>
+    </Setting>
+    <Setting Name="SelectedAtlasMode" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Grid</Value>
+    </Setting>
+    <Setting Name="SelectedAtlasResolution" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Medium</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>
