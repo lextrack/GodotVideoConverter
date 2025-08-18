@@ -433,8 +433,9 @@ namespace GodotVideoConverter.Services
                     $"Estimated memory: {estimatedMemory / (1024 * 1024)}MB (maximum: {MAX_ATLAS_MEMORY / (1024 * 1024)}MB)\n" +
                     $"Solutions:\n" +
                     $"- Reduce atlas FPS (current: {fps})\n" +
-                    $"- Use lower resolution\n" +
-                    $"- Cut video to shorter duration");
+                    $"- Lower the video resolution\n" +
+                    $"- Lower the output resolution of the sprite atlas (Medium recommended)\n" +
+                    $"- Cut video to shorter duration (5 or 10 seconds)");
             }
 
             if (estimatedFrames > MAX_FRAMES)
@@ -450,7 +451,7 @@ namespace GodotVideoConverter.Services
                 throw new InvalidOperationException(
                     $"Resolution too high: {videoInfo.Width}x{videoInfo.Height}\n" +
                     $"Maximum: {MAX_DIMENSION}x{MAX_DIMENSION}\n" +
-                    $"Use scale filter to reduce resolution.");
+                    $"Try to reduce resolution.");
             }
         }
 

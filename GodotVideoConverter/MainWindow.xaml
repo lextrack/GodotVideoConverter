@@ -56,7 +56,7 @@
         <StackPanel Margin="10">
 
             <!-- CONVERSION SETTINGS -->
-            <GroupBox Header="Conversion Settings" Margin="0,0,0,8" Padding="6">
+            <GroupBox Header="Conversion Settings" Margin="0,0,0,10" Padding="6">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>
@@ -124,7 +124,7 @@
             </GroupBox>
 
             <!-- OUTPUT & FILES -->
-            <GroupBox Header="Output and Files" Margin="0,0,0,8" Padding="6">
+            <GroupBox Header="Output and Files" Margin="0,0,0,10" Padding="6">
                 <StackPanel>
                     <TextBlock Text="Output Folder:" Style="{StaticResource SectionHeaderStyle}"/>
                     <Grid Margin="0,0,0,5">
@@ -199,7 +199,7 @@
                 </StackPanel>
             </Border>
 
-            <GroupBox Header="Sprite Atlas" Margin="0,0,0,8" Padding="6">
+            <GroupBox Header="Sprite Atlas" Margin="0,0,0,10" Padding="6">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -247,10 +247,11 @@
                          Height="20" 
                          BorderThickness="1"
                          BorderBrush="#CCCCCC"
-                         Margin="0,0,0,8"/>
+                         Margin="0,0,0,10"/>
             <TextBlock Text="{Binding StatusMessage}" 
                        Margin="0,0,0,10" 
                        TextWrapping="Wrap"
+                       HorizontalAlignment="Center"
                        FontSize="13"
                        Foreground="#363636"/>
 

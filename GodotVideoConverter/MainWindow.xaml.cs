@@ -73,7 +73,7 @@ namespace GodotVideoConverter
                     try
                     {
                         process.Kill();
-                        process.WaitForExit(1000);
+                        process.WaitForExit(2000);
                     }
                     catch
                     {
