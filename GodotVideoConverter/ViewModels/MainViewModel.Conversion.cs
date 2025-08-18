@@ -7,7 +7,7 @@ namespace GodotVideoConverter.ViewModels
 {
     public partial class MainViewModel
     {
-        private async Task ConvertToSpriteAtlasAsync(string inputFile, string outputFolder, string fileName)
+        private async Task ConvertToSpriteAtlasAsync(string inputFile, string outputFolder, string fileName, IProgress<int> progressHandler)
         {
             string outFile = Path.Combine(outputFolder, $"{fileName}_atlas.png");
             int counter = 1;
@@ -29,7 +29,11 @@ namespace GodotVideoConverter.ViewModels
                 }
             }
 
-            var progressHandler = new Progress<int>(p => Progress = p);
+            if (AtlasFps <= 0 || AtlasFps > 60)
+            {
+                throw new InvalidOperationException($"Invalid atlas FPS: {AtlasFps}. Must be between 1 and 60.");
+            }
+
             string atlasMode = SelectedAtlasMode ?? "Grid";
 
             await _service.ConvertToSpriteAtlasAsync(inputFile, outFile, AtlasFps, scaleFilter, atlasMode, progressHandler);
@@ -324,7 +328,14 @@ namespace GodotVideoConverter.ViewModels
                 var parts = SelectedResolution.Split('x');
                 if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
                 {
-                    scaleFilter = $"scale={w}:{h}:force_original_aspect_ratio=decrease";
+                    if (SelectedFormat?.StartsWith("MP4", StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        scaleFilter = $"scale={w}:{h}:force_original_aspect_ratio=decrease,scale='trunc(iw/2)*2':'trunc(ih/2)*2'";
+                    }
+                    else
+                    {
+                        scaleFilter = $"scale={w}:{h}:force_original_aspect_ratio=decrease";
+                    }
                 }
             }
 
