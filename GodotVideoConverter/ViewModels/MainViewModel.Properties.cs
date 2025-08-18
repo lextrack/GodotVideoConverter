@@ -18,7 +18,7 @@ namespace GodotVideoConverter.ViewModels
         [ObservableProperty] private string videoInfo = "";
         [ObservableProperty] private string recommendations = "";
         [ObservableProperty] private int selectedFileIndex = -1;
-        [ObservableProperty] private int atlasFps = 10;
+        [ObservableProperty] private int atlasFps = 5;
         [ObservableProperty] private string? selectedAtlasMode = "Grid";
         [ObservableProperty] private string? selectedAtlasResolution = "Keep Original";
         [ObservableProperty] private bool keepOriginalAtlasResolution = true;

@@ -32,7 +32,7 @@ namespace GodotVideoConverter.ViewModels
                 }
                 if (string.IsNullOrEmpty(SelectedFormat))
                 {
-                    SelectedFormat = "OGV (Godot 4.x)";
+                    SelectedFormat = "OGV (Default for Godot)";
                 }
                 if (string.IsNullOrEmpty(SelectedResolution))
                 {
@@ -53,7 +53,7 @@ namespace GodotVideoConverter.ViewModels
 
                 if (AtlasFps <= 0)
                 {
-                    AtlasFps = 10;
+                    AtlasFps = 5;
                 }
                 if (string.IsNullOrEmpty(SelectedAtlasMode))
                 {
@@ -73,14 +73,14 @@ namespace GodotVideoConverter.ViewModels
         private void SetDefaultValues()
         {
             OutputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output");
-            SelectedFormat = "OGV (Godot 4.x)";
+            SelectedFormat = "OGV (Default for Godot)";
             SelectedResolution = "Keep original";
             SelectedQuality = "Optimized";
             SelectedOgvMode = "Standard";
             Fps = "30";
             KeepAudio = false;
 
-            AtlasFps = 10;
+            AtlasFps = 5;
             SelectedAtlasMode = "Grid";
             SelectedAtlasResolution = "Keep Original";
         }

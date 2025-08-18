@@ -6,7 +6,7 @@ namespace GodotVideoConverter.ViewModels
     {
         public ObservableCollection<string> Formats { get; } = new()
         {
-            "OGV (Godot 4.x)", "MP4 (H.264/AAC)", "WebM (VP9/Opus)"
+            "OGV (Default for Godot)", "MP4 (H.264/AAC)", "WebM (VP9/Opus)"
         };
 
         public ObservableCollection<string> Resolutions { get; } = new()
@@ -18,7 +18,7 @@ namespace GodotVideoConverter.ViewModels
 
         public ObservableCollection<string> AtlasResolutions { get; } = new()
         {
-            "Low", "Medium", "High", "Very High", "Keep Original"
+            "Low", "Medium", "High", "Keep Original"
         };
 
         public ObservableCollection<string> Qualities { get; } = new()

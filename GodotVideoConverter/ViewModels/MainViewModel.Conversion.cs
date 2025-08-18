@@ -375,7 +375,6 @@ namespace GodotVideoConverter.ViewModels
                 "Low" => "64x64",
                 "Medium" => "128x128",
                 "High" => "256x256",
-                "Very High" => "512x512",
                 _ => ""
             };
         }
