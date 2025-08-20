@@ -1,11 +1,13 @@
-﻿using System;
+﻿using GodotVideoConverter.Models;
+using GodotVideoConverter.Services;
+using System;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using GodotVideoConverter.Models;
-using GodotVideoConverter.Services;
 
 namespace GodotVideoConverter.Services
 {
@@ -16,12 +18,16 @@ namespace GodotVideoConverter.Services
         private Process? _currentProcess;
         private bool _disposed = false;
         private readonly VideoRecommendationService _recommendationService;
+        private readonly int _maxParallelSegments;
+        private readonly SemaphoreSlim _processSemaphore;
 
         public VideoConversionService(string baseDir)
         {
             _ffmpegPath = Path.Combine(baseDir, "ffmpeg.exe");
             _ffprobePath = Path.Combine(baseDir, "ffprobe.exe");
             _recommendationService = new VideoRecommendationService();
+            _maxParallelSegments = Math.Max(1, Environment.ProcessorCount - 1);
+            _processSemaphore = new SemaphoreSlim(_maxParallelSegments, _maxParallelSegments);
         }
 
         public async Task<double> GetVideoDurationAsync(string file)
@@ -147,133 +153,358 @@ namespace GodotVideoConverter.Services
             string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
 
-            Process? extractProcess = null;
-
             try
             {
                 progress?.Report(5);
-
                 var videoInfo = await GetVideoInfoAsync(inputFile);
-                if (!videoInfo.IsValid)
-                {
-                    throw new InvalidOperationException("Video file is not valid");
-                }
-
+                ValidateVideoForAtlas(videoInfo, fps);
                 progress?.Report(10);
 
-                ValidateVideoForAtlas(videoInfo, fps);
+                bool useParallel = videoInfo.Duration > 15.0 && _maxParallelSegments > 1;
 
-                string frameExtractArgs = BuildVFRCompatibleArgs(inputFile, tempDir, fps, scaleFilter, videoInfo);
-
-                progress?.Report(15);
-
-                extractProcess = await ExtractFramesWithTimeout(frameExtractArgs, TimeSpan.FromMinutes(5), progress);
-
-                progress?.Report(60);
-
-                var frameFiles = Directory.GetFiles(tempDir, "frame_*.png");
-                if (frameFiles.Length == 0)
+                if (useParallel)
                 {
-                    throw new InvalidOperationException("Could not extract frames from video. Video might be corrupted or have unsupported format.");
+                    Debug.WriteLine("Using parallel extraction");
+                    var segments = CalculateOptimalSegments(videoInfo.Duration, fps);
+                    await ExtractFramesParallelAsync(inputFile, tempDir, fps, scaleFilter, videoInfo, segments, progress);
+                }
+                else
+                {
+                    Debug.WriteLine("Using sequential extraction");
+                    await ExtractFramesSequentialAsync(inputFile, tempDir, fps, scaleFilter, videoInfo, progress);
                 }
 
-                Array.Sort(frameFiles, (x, y) => string.Compare(Path.GetFileName(x), Path.GetFileName(y)));
-
                 progress?.Report(70);
-
-                await CreateOptimizedAtlas(frameFiles, outputFile, atlasMode, progress);
-
+                await CreateStreamingAtlasAsync(tempDir, outputFile, atlasMode, progress);
                 progress?.Report(100);
-            }
-            catch (TimeoutException)
-            {
-                throw new InvalidOperationException("Frame extraction took too long. Video might be too complex or have format issues.");
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException($"Error creating sprite atlas: {ex.Message}");
+                Debug.WriteLine($"Atlas generation error: {ex.Message}");
+                throw;
             }
             finally
             {
-                try
-                {
-                    if (extractProcess != null && !extractProcess.HasExited)
-                    {
-                        extractProcess.Kill();
-                        extractProcess.WaitForExit(2000);
-                    }
-                }
-                catch { }
-
-                extractProcess?.Dispose();
                 CleanupTempDirectory(tempDir);
             }
         }
 
-        private async Task CreateOptimizedAtlas(string[] frameFiles, string outputFile, string atlasMode, IProgress<int> progress)
+        private async Task CreateStreamingAtlasAsync(string tempDir, string outputFile, string atlasMode, IProgress<int> progress)
         {
+            var frameFiles = Directory.GetFiles(tempDir, "frame_*.png");
+            Array.Sort(frameFiles);
+
+            Debug.WriteLine($"Creating atlas with {frameFiles.Length} frames");
+
             if (frameFiles.Length == 0)
                 throw new InvalidOperationException("No frames to process");
 
-            System.Drawing.Size frameSize;
-            using (var firstFrame = System.Drawing.Image.FromFile(frameFiles[0]))
-            {
-                frameSize = firstFrame.Size;
-            }
-
+            Size frameSize = GetFrameSize(frameFiles[0]);
             var layout = CalculateOptimalLayout(frameFiles.Length, frameSize, atlasMode);
 
-            progress?.Report(75);
+            Debug.WriteLine($"Atlas layout: {layout.cols}x{layout.rows}, Frame size: {frameSize}");
 
             long totalWidth = (long)frameSize.Width * layout.cols;
             long totalHeight = (long)frameSize.Height * layout.rows;
 
+            ValidateAtlasSize(totalWidth, totalHeight, frameFiles.Length, layout);
+
+            await CreateAtlasSequentialAsync(frameFiles, outputFile, frameSize, layout, progress);
+
+            Debug.WriteLine("Atlas creation completed");
+        }
+
+        private async Task CreateAtlasSequentialAsync(string[] frameFiles, string outputFile, Size frameSize, (int cols, int rows) layout, IProgress<int> progress)
+        {
+            int atlasWidth = frameSize.Width * layout.cols;
+            int atlasHeight = frameSize.Height * layout.rows;
+
+            using var atlas = new Bitmap(atlasWidth, atlasHeight, PixelFormat.Format32bppArgb);
+            using var graphics = Graphics.FromImage(atlas);
+
+            graphics.Clear(Color.Transparent);
+            graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+            graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+
+            for (int i = 0; i < frameFiles.Length; i++)
+            {
+                try
+                {
+                    var pos = GetFramePosition(i, layout.cols, layout.rows, "grid");
+                    int x = pos.col * frameSize.Width;
+                    int y = pos.row * frameSize.Height;
+
+                    using var frame = Image.FromFile(frameFiles[i]);
+                    graphics.DrawImage(frame, x, y, frameSize.Width, frameSize.Height);
+
+                    if (i % 10 == 0)
+                    {
+                        int progressPercent = 75 + (int)((i + 1) * 24.0 / frameFiles.Length);
+                        progress?.Report(progressPercent);
+                        Debug.WriteLine($"Atlas progress: {i + 1}/{frameFiles.Length} frames");
+
+                        await Task.Yield();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error processing frame {i}: {ex.Message}");
+                    throw;
+                }
+            }
+
+            atlas.Save(outputFile, ImageFormat.Png);
+        }
+
+        private void ValidateAtlasSize(long totalWidth, long totalHeight, int frameCount, (int cols, int rows) layout)
+        {
             const int MAX_SIZE = 16384;
             if (totalWidth > MAX_SIZE || totalHeight > MAX_SIZE)
             {
                 throw new InvalidOperationException(
                     $"Atlas too large: {totalWidth}x{totalHeight} (maximum: {MAX_SIZE}x{MAX_SIZE})\n" +
-                    $"Frames: {frameFiles.Length}, Layout: {layout.cols}x{layout.rows}");
+                    $"Frames: {frameCount}, Layout: {layout.cols}x{layout.rows}");
+            }
+        }
+
+        private Size GetFrameSize(string framePath)
+        {
+            using var frame = Image.FromFile(framePath);
+            return frame.Size;
+        }
+
+        private class VideoSegment
+        {
+            public int Index { get; set; }
+            public double StartTime { get; set; }
+            public double Duration { get; set; }
+            public string TempDir { get; set; } = string.Empty;
+        }
+
+        private List<VideoSegment> CalculateOptimalSegments(double duration, int fps)
+        {
+            const double MAX_SEGMENT_DURATION = 10.0;
+            int segmentCount = Math.Min(_maxParallelSegments, (int)Math.Ceiling(duration / MAX_SEGMENT_DURATION));
+            double segmentDuration = duration / segmentCount;
+
+            var segments = new List<VideoSegment>();
+            for (int i = 0; i < segmentCount; i++)
+            {
+                segments.Add(new VideoSegment
+                {
+                    Index = i,
+                    StartTime = i * segmentDuration,
+                    Duration = Math.Min(segmentDuration, duration - (i * segmentDuration)),
+                    TempDir = Path.Combine(Path.GetTempPath(), $"segment_{i}_{Guid.NewGuid()}")
+                });
             }
 
-            progress?.Report(80);
+            return segments;
+        }
+
+        private async Task ExtractFramesSequentialAsync(string inputFile, string tempDir, int fps, string scaleFilter, VideoInfo videoInfo, IProgress<int> progress)
+        {
+            string frameExtractArgs = BuildVFRCompatibleArgs(inputFile, tempDir, fps, scaleFilter, videoInfo);
+
+            var extractProcess = await ExtractFramesWithTimeout(frameExtractArgs, TimeSpan.FromMinutes(5), progress);
+            extractProcess?.Dispose();
+        }
+
+        private async Task ExtractFramesParallelAsync(string inputFile, string tempDir, int fps, string scaleFilter, VideoInfo videoInfo, List<VideoSegment> segments, IProgress<int> progress)
+        {
+            try
+            {
+                Debug.WriteLine($"Starting parallel extraction with {segments.Count} segments");
+
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+                var extractionTasks = segments.Select(segment =>
+                    ExtractSegmentFramesAsync(inputFile, segment, fps, scaleFilter, videoInfo, cts.Token));
+
+                await Task.WhenAll(extractionTasks);
+
+                Debug.WriteLine("All segments extracted, merging...");
+                await MergeSegmentFramesAsync(segments, tempDir, progress);
+                Debug.WriteLine("Merge completed");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Parallel extraction failed: {ex.Message}, falling back to sequential");
+
+                foreach (var segment in segments)
+                {
+                    CleanupTempDirectory(segment.TempDir);
+                }
+
+                await ExtractFramesSequentialAsync(inputFile, tempDir, fps, scaleFilter, videoInfo, progress);
+            }
+        }
+
+        private async Task ExtractSegmentFramesAsync(string inputFile, VideoSegment segment, int fps, string scaleFilter, VideoInfo videoInfo, CancellationToken cancellationToken)
+        {
+            await _processSemaphore.WaitAsync(cancellationToken);
 
             try
             {
-                using var atlas = new System.Drawing.Bitmap((int)totalWidth, (int)totalHeight,
-                    System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                using var graphics = System.Drawing.Graphics.FromImage(atlas);
+                Debug.WriteLine($"Processing segment {segment.Index}: {segment.StartTime:F1}s - {segment.StartTime + segment.Duration:F1}s");
 
-                graphics.Clear(System.Drawing.Color.Transparent);
-                graphics.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
-                graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
+                Directory.CreateDirectory(segment.TempDir);
 
-                for (int i = 0; i < frameFiles.Length; i++)
+                string args = BuildSegmentExtractionArgs(inputFile, segment, fps, scaleFilter, videoInfo);
+
+                var psi = new ProcessStartInfo
                 {
-                    var pos = GetFramePosition(i, layout.cols, layout.rows, atlasMode);
-                    int x = pos.col * frameSize.Width;
-                    int y = pos.row * frameSize.Height;
+                    FileName = _ffmpegPath,
+                    Arguments = args,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
 
-                    using var frame = System.Drawing.Image.FromFile(frameFiles[i]);
-                    graphics.DrawImage(frame, x, y, frameSize.Width, frameSize.Height);
+                using var process = Process.Start(psi);
+                if (process == null)
+                    throw new InvalidOperationException($"Could not start FFmpeg for segment {segment.Index}");
 
-                    if (i % 5 == 0)
+                var lastActivity = DateTime.Now;
+                var errorLines = new List<string>();
+
+                var monitorTask = Task.Run(async () =>
+                {
+                    try
                     {
-                        int progressPercent = 80 + (int)((i + 1) * 19.0 / frameFiles.Length);
-                        progress?.Report(progressPercent);
+                        using var reader = process.StandardError;
+                        string line;
+                        while ((line = await reader.ReadLineAsync()) != null)
+                        {
+                            errorLines.Add(line);
+                            if (line.Contains("frame=") || line.Contains("time="))
+                            {
+                                lastActivity = DateTime.Now;
+                            }
+                        }
+                    }
+                    catch { }
+                });
+
+                using var registration = cancellationToken.Register(() =>
+                {
+                    try
+                    {
+                        if (!process.HasExited)
+                            process.Kill();
+                    }
+                    catch { }
+                });
+
+                var processTask = process.WaitForExitAsync(cancellationToken);
+                var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+
+                var progressCheckTask = Task.Run(async () =>
+                {
+                    while (!process.HasExited && !cancellationToken.IsCancellationRequested)
+                    {
+                        await Task.Delay(20000, cancellationToken);
+                        if (DateTime.Now - lastActivity > TimeSpan.FromMinutes(2))
+                        {
+                            throw new TimeoutException($"Segment {segment.Index} stuck - no activity for 2 minutes");
+                        }
+                    }
+                }, cancellationToken);
+
+                var completedTask = await Task.WhenAny(processTask, timeoutTask, progressCheckTask);
+
+                if (completedTask == timeoutTask)
+                {
+                    throw new TimeoutException($"Segment {segment.Index} timed out after 5 minutes");
+                }
+
+                if (completedTask == progressCheckTask)
+                {
+                    await progressCheckTask;
+                }
+
+                await monitorTask;
+
+                if (process.ExitCode != 0)
+                {
+                    string error = errorLines.Count > 0 ? string.Join("\n", errorLines.TakeLast(3)) : "Unknown error";
+                    throw new InvalidOperationException($"Segment {segment.Index} failed: {error}");
+                }
+
+                var frameCount = Directory.GetFiles(segment.TempDir, "frame_*.png").Length;
+                if (frameCount == 0)
+                {
+                    throw new InvalidOperationException($"Segment {segment.Index} produced no frames - FFmpeg may have failed silently");
+                }
+
+                Debug.WriteLine($"Segment {segment.Index} completed: {frameCount} frames");
+            }
+            finally
+            {
+                _processSemaphore.Release();
+            }
+        }
+
+        private async Task MergeSegmentFramesAsync(List<VideoSegment> segments, string tempDir, IProgress<int> progress)
+        {
+            var allFramePaths = new List<(string path, double timeCode)>();
+
+            foreach (var segment in segments.OrderBy(s => s.Index))
+            {
+                var segmentFrames = Directory.GetFiles(segment.TempDir, "frame_*.png");
+
+                foreach (var framePath in segmentFrames)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(framePath);
+                    if (fileName.StartsWith("frame_") && int.TryParse(fileName.Substring(6), out int frameNum))
+                    {
+                        double timeCode = segment.StartTime + (frameNum - 1) * (1.0 / 30.0);
+                        allFramePaths.Add((framePath, timeCode));
                     }
                 }
 
-                atlas.Save(outputFile, System.Drawing.Imaging.ImageFormat.Png);
+                progress?.Report(30 + (segment.Index * 40 / segments.Count));
+            }
 
-                progress?.Report(99);
-            }
-            catch (OutOfMemoryException)
+            allFramePaths.Sort((a, b) => a.timeCode.CompareTo(b.timeCode));
+
+            for (int i = 0; i < allFramePaths.Count; i++)
             {
-                throw new InvalidOperationException(
-                    "Insufficient memory to create atlas.\n" +
-                    "Reduce video resolution, FPS or duration.");
+                string newPath = Path.Combine(tempDir, $"frame_{i + 1:D4}.png");
+                File.Copy(allFramePaths[i].path, newPath, true);
+
+                if (i % 50 == 0)
+                {
+                    Debug.WriteLine($"Merged {i + 1}/{allFramePaths.Count} frames");
+                }
             }
+
+            foreach (var segment in segments)
+            {
+                CleanupTempDirectory(segment.TempDir);
+            }
+
+            Debug.WriteLine($"Merge complete: {allFramePaths.Count} frames total");
+        }
+
+        private string BuildSegmentExtractionArgs(string inputFile, VideoSegment segment, int fps, string scaleFilter, VideoInfo videoInfo)
+        {
+            string args = $"-ss {segment.StartTime:F3} -t {segment.Duration:F3} -i \"{inputFile}\"";
+            args += " -vsync cfr";
+
+            string videoFilters = $"fps={fps}";
+            if (!string.IsNullOrEmpty(scaleFilter))
+                videoFilters += $",{scaleFilter}";
+            videoFilters += ",format=rgb24";
+
+            args += $" -vf \"{videoFilters}\"";
+            args += " -avoid_negative_ts make_zero";
+            args += " -fflags +genpts";
+            args += $" -start_number {segment.Index * 10000 + 1}";
+            args += $" \"{Path.Combine(segment.TempDir, "frame_%08d.png")}\"";
+            args += " -y";
+
+            return args;
         }
 
         private (int cols, int rows) CalculateOptimalLayout(int frameCount, System.Drawing.Size frameSize, string atlasMode)
@@ -333,6 +564,8 @@ namespace GodotVideoConverter.Services
 
             var outputLines = new List<string>();
             var errorLines = new List<string>();
+            var lastProgressTime = DateTime.Now;
+            var lastFrameCount = 0;
 
             var errorTask = Task.Run(async () =>
             {
@@ -349,7 +582,13 @@ namespace GodotVideoConverter.Services
                             var match = Regex.Match(line, @"frame=\s*(\d+)");
                             if (match.Success && int.TryParse(match.Groups[1].Value, out int frameNum))
                             {
-                                int progressPercent = Math.Min(59, 15 + (frameNum * 44 / 100));
+                                if (frameNum > lastFrameCount)
+                                {
+                                    lastFrameCount = frameNum;
+                                    lastProgressTime = DateTime.Now;
+                                }
+
+                                int progressPercent = Math.Min(100, 15 + (int)(frameNum * 0.85f));
                                 progress?.Report(progressPercent);
                             }
                         }
@@ -361,11 +600,34 @@ namespace GodotVideoConverter.Services
                 }
             });
 
+            var progressMonitorTask = Task.Run(async () =>
+            {
+                while (!process.HasExited)
+                {
+                    await Task.Delay(20000);
+
+                    if (!process.HasExited && DateTime.Now - lastProgressTime > TimeSpan.FromMinutes(3))
+                    {
+                        Debug.WriteLine($"No progress detected for 3 minutes. Last frame: {lastFrameCount}");
+                        throw new TimeoutException("The app appears to be stuck - no progress for 3 minutes");
+                    }
+                }
+            });
+
             using var cts = new CancellationTokenSource(timeout);
 
             try
             {
-                await process.WaitForExitAsync(cts.Token);
+                var completedTask = await Task.WhenAny(
+                    process.WaitForExitAsync(cts.Token),
+                    progressMonitorTask
+                );
+
+                if (completedTask == progressMonitorTask)
+                {
+                    await progressMonitorTask;
+                }
+
                 await errorTask;
             }
             catch (OperationCanceledException)
@@ -380,7 +642,7 @@ namespace GodotVideoConverter.Services
                 }
                 catch { }
 
-                throw new TimeoutException($"FFmpeg took longer than {timeout.TotalMinutes} minutes to process video");
+                throw new TimeoutException($"The app took longer than {timeout.TotalMinutes} minutes to process video");
             }
 
             if (process.ExitCode != 0)
@@ -394,7 +656,9 @@ namespace GodotVideoConverter.Services
                         line.Contains("Failed") ||
                         line.Contains("No such file") ||
                         line.Contains("Permission denied") ||
-                        line.Contains("Unsupported"))
+                        line.Contains("Unsupported") ||
+                        line.Contains("Cannot determine") ||
+                        line.Contains("Conversion failed"))
                     .TakeLast(3);
 
                 if (relevantErrors.Any())
@@ -416,15 +680,47 @@ namespace GodotVideoConverter.Services
             return process;
         }
 
+
         private void ValidateVideoForAtlas(VideoInfo videoInfo, int fps)
         {
             int estimatedFrames = (int)Math.Ceiling(videoInfo.Duration * fps);
             long bytesPerFrame = videoInfo.Width * videoInfo.Height * 4L;
             long estimatedMemory = bytesPerFrame * estimatedFrames;
 
-            const long MAX_ATLAS_MEMORY = 200L * 1024 * 1024;
-            const int MAX_FRAMES = 500;
+            const long MAX_ATLAS_MEMORY = 500L * 1024 * 1024;
+            const int MAX_FRAMES = 1000;
             const int MAX_DIMENSION = 8192;
+            const int MIN_DIMENSION = 16;
+            const int RECOMMENDED_MAX = 3840;
+
+            if (videoInfo.Width > MAX_DIMENSION || videoInfo.Height > MAX_DIMENSION)
+            {
+                throw new InvalidOperationException(
+                    $"Resolution too high: {videoInfo.Width}x{videoInfo.Height}\n" +
+                    $"Maximum supported resolution: {MAX_DIMENSION}x{MAX_DIMENSION}\n" +
+                    $"Recommended: Scale down to 4K ({RECOMMENDED_MAX}x{RECOMMENDED_MAX * videoInfo.Height / videoInfo.Width}) or lower.");
+            }
+
+            if (videoInfo.Width < MIN_DIMENSION || videoInfo.Height < MIN_DIMENSION)
+            {
+                throw new InvalidOperationException(
+                    $"Resolution too low: {videoInfo.Width}x{videoInfo.Height}\n" +
+                    $"Minimum supported resolution: {MIN_DIMENSION}x{MIN_DIMENSION}\n" +
+                    $"The video may not process correctly at this size.");
+            }
+
+            double aspectRatio = (double)videoInfo.Width / videoInfo.Height;
+            const double MAX_ASPECT_RATIO = 10.0;
+            const double MIN_ASPECT_RATIO = 0.1;
+
+            if (aspectRatio > MAX_ASPECT_RATIO || aspectRatio < MIN_ASPECT_RATIO)
+            {
+                throw new InvalidOperationException(
+                    $"Extreme aspect ratio detected: {aspectRatio:F2}:1\n" +
+                    $"Supported range: {MIN_ASPECT_RATIO}:1 to {MAX_ASPECT_RATIO}:1\n" +
+                    $"Very wide or tall videos may cause processing issues.\n" +
+                    $"Consider cropping or resizing to a more standard aspect ratio (e.g., 16:9, 4:3, 1:1).");
+            }
 
             if (estimatedMemory > MAX_ATLAS_MEMORY)
             {
@@ -434,8 +730,8 @@ namespace GodotVideoConverter.Services
                     $"Solutions:\n" +
                     $"- Reduce atlas FPS (current: {fps})\n" +
                     $"- Lower the video resolution\n" +
-                    $"- Lower the output resolution of the sprite atlas (Medium recommended)\n" +
-                    $"- Cut video to shorter duration (5 or 10 seconds)");
+                    $"- Lower the output resolution of the sprite atlas\n" +
+                    $"- Cut video to shorter duration (5, 10 or 30 seconds)");
             }
 
             if (estimatedFrames > MAX_FRAMES)
@@ -446,12 +742,12 @@ namespace GodotVideoConverter.Services
                     $"Reduce atlas FPS or video duration.");
             }
 
-            if (videoInfo.Width > MAX_DIMENSION || videoInfo.Height > MAX_DIMENSION)
+            if (videoInfo.Duration > 30)
             {
                 throw new InvalidOperationException(
-                    $"Resolution too high: {videoInfo.Width}x{videoInfo.Height}\n" +
-                    $"Maximum: {MAX_DIMENSION}x{MAX_DIMENSION}\n" +
-                    $"Try to reduce resolution.");
+                    $"Video too long: {videoInfo.Duration:F1}s (maximum: 30s)\n" +
+                    $"Very long videos may cause infinite timeouts or memory issues.\n" +
+                    $"Cut video to shorter duration (5, 10 or 30 seconds)");
             }
         }
 
@@ -495,7 +791,7 @@ namespace GodotVideoConverter.Services
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"No se pudo eliminar {file}: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Could not be deleted {file}: {ex.Message}");
                     }
                 }
 
@@ -503,7 +799,7 @@ namespace GodotVideoConverter.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error limpiando directorio temporal: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Error cleaning temporary directory: {ex.Message}");
 
                 try
                 {
@@ -663,12 +959,12 @@ namespace GodotVideoConverter.Services
                     await _currentProcess.WaitForExitAsync(cancellationToken);
                 }, cancellationToken);
 
-                var timeoutTask = Task.Delay(TimeSpan.FromMinutes(30), cancellationToken);
+                var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
                 var completedTask = await Task.WhenAny(processTask, timeoutTask);
 
                 if (completedTask == timeoutTask)
                 {
-                    throw new TimeoutException("FFmpeg conversion timed out after 30 minutes");
+                    throw new TimeoutException("FFmpeg conversion timed out after 5 minutes");
                 }
 
                 cancellationTokenSource.Cancel();
@@ -688,7 +984,7 @@ namespace GodotVideoConverter.Services
 
                 if (_currentProcess.ExitCode != 0)
                 {
-                    throw new InvalidOperationException($"FFmpeg conversion failed with exit code {_currentProcess.ExitCode}");
+                    throw new InvalidOperationException($"Conversion failed with exit code {_currentProcess.ExitCode}");
                 }
 
                 if (!File.Exists(outputFile))
