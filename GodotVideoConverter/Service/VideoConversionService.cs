@@ -8,6 +8,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Globalization;
 
 namespace GodotVideoConverter.Services
 {
@@ -63,6 +64,7 @@ namespace GodotVideoConverter.Services
 
                 if (process.ExitCode != 0 || string.IsNullOrEmpty(output))
                 {
+                    Debug.WriteLine($"FFprobe failed with exit code {process.ExitCode}. Error: {error}");
                     return videoInfo;
                 }
 
@@ -73,14 +75,33 @@ namespace GodotVideoConverter.Services
                 {
                     if (format.TryGetProperty("duration", out var duration))
                     {
-                        if (double.TryParse(duration.GetString(), out var dur))
+                        string durationStr = duration.GetString() ?? "";
+                        Debug.WriteLine($"Raw duration string from FFprobe: '{durationStr}'");
+
+                        if (double.TryParse(durationStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var dur))
+                        {
                             videoInfo.Duration = dur;
+                            Debug.WriteLine($"Parsed duration: {dur} seconds");
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Failed to parse duration: '{durationStr}'");
+                            if (TryParseAlternativeDuration(durationStr, out var altDur))
+                            {
+                                videoInfo.Duration = altDur;
+                                Debug.WriteLine($"Alternative parsing succeeded: {altDur} seconds");
+                            }
+                        }
                     }
 
+                    // Fix para parseo de bitrate con cultura invariante
                     if (format.TryGetProperty("bit_rate", out var bitrate))
                     {
-                        if (long.TryParse(bitrate.GetString(), out var br))
+                        string bitrateStr = bitrate.GetString() ?? "";
+                        if (long.TryParse(bitrateStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var br))
+                        {
                             videoInfo.BitRate = br;
+                        }
                     }
                 }
 
@@ -110,12 +131,23 @@ namespace GodotVideoConverter.Services
                                     {
                                         var parts = fpsStr.Split('/');
                                         if (parts.Length == 2 &&
-                                            double.TryParse(parts[0], out var num) &&
-                                            double.TryParse(parts[1], out var den) &&
+                                            double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var num) &&
+                                            double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var den) &&
                                             den != 0)
                                         {
                                             videoInfo.FrameRate = num / den;
                                         }
+                                    }
+                                }
+
+                                // Verificar duración del stream de video como fallback
+                                if (videoInfo.Duration <= 0 && stream.TryGetProperty("duration", out var streamDuration))
+                                {
+                                    string streamDurStr = streamDuration.GetString() ?? "";
+                                    if (double.TryParse(streamDurStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var streamDur))
+                                    {
+                                        videoInfo.Duration = streamDur;
+                                        Debug.WriteLine($"Using video stream duration: {streamDur} seconds");
                                     }
                                 }
                             }
@@ -129,7 +161,31 @@ namespace GodotVideoConverter.Services
                     }
                 }
 
+                // Validación adicional de duración
+                if (videoInfo.Duration > 0)
+                {
+                    // Verificar que la duración sea razonable (no mayor a 24 horas)
+                    if (videoInfo.Duration > 86400) // 24 horas en segundos
+                    {
+                        Debug.WriteLine($"Warning: Extremely long duration detected: {videoInfo.Duration}s ({videoInfo.Duration / 3600:F1} hours)");
+                        Debug.WriteLine("This might indicate a parsing error. Consider checking the video file.");
+                    }
+
+                    // Si la duración parece incorrecta, intentar obtenerla directamente con FFprobe
+                    if (videoInfo.Duration > 3600) // Mayor a 1 hora, verificar
+                    {
+                        var alternativeDuration = await GetDurationDirectly(file);
+                        if (alternativeDuration > 0 && alternativeDuration < videoInfo.Duration)
+                        {
+                            Debug.WriteLine($"Using alternative duration method: {alternativeDuration}s instead of {videoInfo.Duration}s");
+                            videoInfo.Duration = alternativeDuration;
+                        }
+                    }
+                }
+
                 videoInfo.IsValid = videoInfo.Duration > 0 && videoInfo.Width > 0 && videoInfo.Height > 0;
+
+                Debug.WriteLine($"Video info parsed - Duration: {videoInfo.Duration}s, Resolution: {videoInfo.Width}x{videoInfo.Height}, Valid: {videoInfo.IsValid}");
             }
             catch (Exception ex)
             {
@@ -137,6 +193,89 @@ namespace GodotVideoConverter.Services
             }
 
             return videoInfo;
+        }
+
+        // Método alternativo para parsear duración en formatos inesperados
+        private bool TryParseAlternativeDuration(string durationStr, out double duration)
+        {
+            duration = 0;
+
+            if (string.IsNullOrEmpty(durationStr))
+                return false;
+
+            try
+            {
+                // Remover espacios en blanco
+                durationStr = durationStr.Trim();
+
+                // Intentar con diferentes culturas
+                var cultures = new[] { CultureInfo.InvariantCulture, CultureInfo.CurrentCulture, new CultureInfo("en-US") };
+
+                foreach (var culture in cultures)
+                {
+                    if (double.TryParse(durationStr, NumberStyles.Float, culture, out duration))
+                    {
+                        // Verificar que el resultado sea razonable
+                        if (duration > 0 && duration < 86400) // Entre 0 y 24 horas
+                        {
+                            return true;
+                        }
+                    }
+                }
+
+                // Intentar parsear como TimeSpan si está en formato HH:MM:SS
+                if (TimeSpan.TryParse(durationStr, out var timeSpan))
+                {
+                    duration = timeSpan.TotalSeconds;
+                    return duration > 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Alternative duration parsing failed: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        // Método directo para obtener duración usando FFprobe con formato específico
+        private async Task<double> GetDurationDirectly(string file)
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName = _ffprobePath,
+                    Arguments = $"-v quiet -show_entries format=duration -of csv=p=0 \"{file}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(psi);
+                if (process == null) return 0;
+
+                string output = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                {
+                    string durationStr = output.Trim();
+                    Debug.WriteLine($"Direct duration query result: '{durationStr}'");
+
+                    if (double.TryParse(durationStr, NumberStyles.Float, CultureInfo.InvariantCulture, out var dur))
+                    {
+                        return dur;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Direct duration query failed: {ex.Message}");
+            }
+
+            return 0;
         }
 
         public async Task<bool> ValidateVideoFileAsync(string file)
@@ -157,6 +296,10 @@ namespace GodotVideoConverter.Services
             {
                 progress?.Report(5);
                 var videoInfo = await GetVideoInfoAsync(inputFile);
+
+                // Log adicional para debugging
+                Debug.WriteLine($"Atlas generation - Video duration: {videoInfo.Duration}s, Resolution: {videoInfo.Width}x{videoInfo.Height}");
+
                 ValidateVideoForAtlas(videoInfo, fps);
                 progress?.Report(10);
 
@@ -489,7 +632,7 @@ namespace GodotVideoConverter.Services
 
         private string BuildSegmentExtractionArgs(string inputFile, VideoSegment segment, int fps, string scaleFilter, VideoInfo videoInfo)
         {
-            string args = $"-ss {segment.StartTime:F3} -t {segment.Duration:F3} -i \"{inputFile}\"";
+            string args = $"-ss {segment.StartTime.ToString("F3", CultureInfo.InvariantCulture)} -t {segment.Duration.ToString("F3", CultureInfo.InvariantCulture)} -i \"{inputFile}\"";
             args += " -vsync cfr";
 
             string videoFilters = $"fps={fps}";
@@ -680,7 +823,6 @@ namespace GodotVideoConverter.Services
             return process;
         }
 
-
         private void ValidateVideoForAtlas(VideoInfo videoInfo, int fps)
         {
             int estimatedFrames = (int)Math.Ceiling(videoInfo.Duration * fps);
@@ -692,6 +834,8 @@ namespace GodotVideoConverter.Services
             const int MAX_DIMENSION = 8192;
             const int MIN_DIMENSION = 16;
             const int RECOMMENDED_MAX = 3840;
+
+            Debug.WriteLine($"Atlas validation - Duration: {videoInfo.Duration}s, Estimated frames: {estimatedFrames}, Estimated memory: {estimatedMemory / (1024 * 1024)}MB");
 
             if (videoInfo.Width > MAX_DIMENSION || videoInfo.Height > MAX_DIMENSION)
             {
@@ -727,6 +871,7 @@ namespace GodotVideoConverter.Services
                 throw new InvalidOperationException(
                     $"Video is too large to create sprite atlas.\n" +
                     $"Estimated memory: {estimatedMemory / (1024 * 1024)}MB (maximum: {MAX_ATLAS_MEMORY / (1024 * 1024)}MB)\n" +
+                    $"Actual duration: {videoInfo.Duration:F1}s, FPS: {fps}, Frames: {estimatedFrames}\n" +
                     $"Solutions:\n" +
                     $"- Reduce atlas FPS (current: {fps})\n" +
                     $"- Lower the video resolution\n" +
@@ -749,6 +894,15 @@ namespace GodotVideoConverter.Services
                     $"Very long videos may cause infinite timeouts or memory issues.\n" +
                     $"Cut video to shorter duration (5, 10 or 30 seconds)");
             }
+
+            // Verificación adicional para detectar posibles errores de parsing
+            if (videoInfo.Duration > 3600) // Mayor a 1 hora
+            {
+                throw new InvalidOperationException(
+                    $"Duration seems unrealistic: {videoInfo.Duration:F1}s ({videoInfo.Duration / 3600:F1} hours)\n" +
+                    $"This might indicate a duration parsing error.\n" +
+                    $"Please verify the video file or try a different video format.");
+            }
         }
 
         private string BuildVFRCompatibleArgs(string inputFile, string tempDir, int fps, string scaleFilter, VideoInfo videoInfo)
@@ -756,7 +910,7 @@ namespace GodotVideoConverter.Services
             string baseArgs = $"-i \"{inputFile}\"";
             baseArgs += " -vsync cfr";
             double maxDuration = Math.Min(videoInfo.Duration, 30.0);
-            baseArgs += $" -t {maxDuration:F2}";
+            baseArgs += $" -t {maxDuration.ToString("F2", CultureInfo.InvariantCulture)}";
             string videoFilters = $"fps={fps}";
 
             if (!string.IsNullOrEmpty(scaleFilter))
@@ -897,9 +1051,9 @@ namespace GodotVideoConverter.Services
                             {
                                 try
                                 {
-                                    double hours = double.Parse(match.Groups[1].Value);
-                                    double minutes = double.Parse(match.Groups[2].Value);
-                                    double seconds = double.Parse(match.Groups[3].Value);
+                                    double hours = double.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+                                    double minutes = double.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture);
+                                    double seconds = double.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture);
 
                                     double currentSeconds = hours * 3600 + minutes * 60 + seconds;
                                     int percentComplete = totalSeconds > 0
