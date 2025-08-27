@@ -1,7 +1,3 @@
-Aquí tienes el README con las tablas modificadas según tu pedido (eliminé la columna **GOP y Keyframe Interval** en *OGV Optimization Modes* y la columna **CRF/QP Value** en *Quality Presets*):
-
----
-
 # Godot Video Converter
 
 A specialized video conversion tool designed for **Godot Engine** developers, with optimized settings for game development workflows.
