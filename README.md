@@ -77,7 +77,7 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 * **Presets manager** for frequent configurations
 * **Sprite atlas generator** with layout options
 
-## ⚙️ Technical Specifications
+## ⚙️ General Technical Specifications
 
 * **Resolution options**: 3840x2160 (4K) to 426x240 (240p)
 * **FPS control**: Customizable (default: 30)
@@ -86,16 +86,9 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 * **Settings**: Persist between sessions
 * **Atlas generation**: PNG output with customizable frame extraction
 
-## 🎮 Why Use OGV in Godot?
-
-* **Native support**: Zero-configuration playback
-* **Cross-platform**: Identical behavior on all Godot targets
-* **Performance**: Lightweight decoding suitable for games
-* **Reliability**: No plugin dependencies or licensing issues
-
 ## 📦 Installation & Requirements
 
-1. Download the latest release (Windows/macOS/Linux)
+1. Download the latest release
 2. **No installation required** - portable executable
 3. **FFmpeg included** - no additional dependencies
 
