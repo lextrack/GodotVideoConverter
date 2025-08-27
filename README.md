@@ -1,6 +1,6 @@
 # Godot Video Converter
 
-A specialized video conversion tool designed for **Godot Engine** developers, with optimized settings for game development workflows.
+A specialized video conversion tool for Godot Engine developers.
 
 ## 🎯 Purpose
 
@@ -9,7 +9,6 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 * Native Godot support without external plugins
 * Game-oriented optimizations
 * Batch processing capabilities
-* Customizable output settings
 * Sprite atlas generation from videos
 
 ## ✨ Key Features
@@ -42,18 +41,18 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 | **Horizontal** | Single row layout                    |
 | **Vertical**   | Single column layout                 |
 
-**Resolution Options**: Low → Very High per frame
+**Resolution Options**: Low → Very High (or keep original) per frame
 **Use Cases**: Character cycles, UI effects, particle animations, game object states, etc
 
 ### OGV Optimization Modes (Technical Specifications)
 
 | Mode                   | Best Performance On    |
 | ---------------------- | ---------------------- |
-| **Standard**           | Desktop/Consoles       |
+| **Standard**           | Default (recommended for most videos)      |
 | **Constant FPS (CFR)** | UI elements            |
 | **Weak Hardware**      | Mobile/Low-end devices |
 | **Ideal Loop**         | Sprite animations      |
-| **Controlled Bitrate** | Live streaming         |
+| **Controlled Bitrate** | Try to maintain the average bitrate        |
 | **Mobile Optimized**   | Mobile games           |
 
 ### Quality Presets (Performance Characteristics)
