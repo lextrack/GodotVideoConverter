@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:GodotVideoConverter.ViewModels"
         xmlns:local="clr-namespace:GodotVideoConverter"
-        Title="Godot Video Converter" Height="800" Width="750" WindowStartupLocation="CenterScreen"
+        Title="Godot Video Converter" Height="850" Width="750" WindowStartupLocation="CenterScreen"
         AllowDrop="True"
         DragOver="Window_DragOver"
         Drop="Window_Drop"
@@ -24,38 +24,152 @@
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Foreground" Value="#333333"/>
             <Setter Property="Margin" Value="0,8,0,3"/>
+            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
         </Style>
 
         <Style x:Key="ButtonStyle" TargetType="Button">
             <Setter Property="Padding" Value="8,4"/>
             <Setter Property="MinWidth" Value="70"/>
-            <Setter Property="Background" Value="#F5F5F5"/>
-            <Setter Property="BorderBrush" Value="#CCCCCC"/>
             <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="#005FB8"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#003087"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#0078D4"/>
+                                <Setter Property="BorderBrush" Value="#005FB8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                                <Setter Property="Foreground" Value="#A0A0A0"/>
+                                <Setter Property="BorderBrush" Value="#D0D0D0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-            <Setter Property="Background" Value="#0078D4"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#0078D4"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="16,8"/>
         </Style>
+
         <Style x:Key="AlternativeButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-            <Setter Property="Background" Value="#228B22"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#228B22"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="16,8"/>
+        </Style>
+
+        <Style x:Key="OrangeTipBorderStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="Orange"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+
+        <Style x:Key="BlueBorderStyle" TargetType="Border">
+            <Setter Property="BorderBrush" Value="#0078D4"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+
+        <Style x:Key="BlueButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Background" Value="#FF3685B7"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#2F6396"/>
+            <!-- Borde más oscuro para el azul claro -->
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#66A3FF"/>
+                                <!-- Azul aún más claro para hover -->
+                                <Setter Property="BorderBrush" Value="#4A90E2"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                                <Setter Property="Foreground" Value="#A0A0A0"/>
+                                <Setter Property="BorderBrush" Value="#D0D0D0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="GreenButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="Background" Value="#107C10"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#0A5F0A"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2E8B2E"/>
+                                <Setter Property="BorderBrush" Value="#107C10"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#F0F0F0"/>
+                                <Setter Property="Foreground" Value="#A0A0A0"/>
+                                <Setter Property="BorderBrush" Value="#D0D0D0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="FileListBoxStyle" TargetType="ListBox">
+            <Setter Property="Background" Value="#F5F5F5"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style x:Key="FileListBoxItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="Margin" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#E3F2FD"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F0F0F0"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="10">
+        <StackPanel Margin="15">
 
-            <!-- CONVERSION SETTINGS -->
             <GroupBox Header="Conversion Settings" Margin="0,0,0,10" Padding="6">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -69,7 +183,6 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Left Column -->
                     <StackPanel Grid.Column="0" Grid.Row="0">
                         <TextBlock Text="Format:" Style="{StaticResource SectionHeaderStyle}"/>
                         <ComboBox ItemsSource="{Binding Formats}" 
@@ -84,7 +197,6 @@
                                   Margin="0,0,0,6"/>
                     </StackPanel>
 
-                    <!-- Right Column -->
                     <StackPanel Grid.Column="2" Grid.Row="0">
                         <TextBlock Text="Quality:" Style="{StaticResource SectionHeaderStyle}"/>
                         <ComboBox ItemsSource="{Binding Qualities}" 
@@ -105,25 +217,23 @@
                         </ComboBox>
                     </StackPanel>
 
-                    <!-- Additional Options -->
                     <StackPanel Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,8,0,0">
                         <CheckBox Content="Keep Audio" 
                                   IsChecked="{Binding KeepAudio}" 
                                   IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
                                   VerticalAlignment="Center"
                                   Margin="0,0,30,0"/>
-
                         <TextBlock Text="FPS:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <TextBox Text="{Binding Fps}" 
-                                 Width="50" 
+                                 Width="80" 
                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
                                  VerticalAlignment="Center" 
-                                 MaxLength="2"/>
+                                 MaxLength="2"
+                                 PreviewTextInput="NumbersOnly_PreviewTextInput"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>
 
-            <!-- OUTPUT & FILES -->
             <GroupBox Header="Output and Files" Margin="0,0,0,10" Padding="6">
                 <StackPanel>
                     <TextBlock Text="Output Folder:" Style="{StaticResource SectionHeaderStyle}"/>
@@ -135,8 +245,7 @@
                         <TextBox Grid.Column="0" 
                                  Text="{Binding OutputFolder}" 
                                  IsReadOnly="True" 
-                                 Margin="0,0,8,0"
-                                 Background="#F8F8F8"/>
+                                 Margin="0,0,8,0"/>
                         <Button Grid.Column="1" 
                                 Content="Browse..." 
                                 Command="{Binding BrowseOutputFolderCommand}" 
@@ -145,37 +254,32 @@
                     </Grid>
 
                     <TextBlock Text="Files:" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Border BorderBrush="#DDDDDD" BorderThickness="1" CornerRadius="3">
+                    <Border BorderThickness="1" CornerRadius="3" BorderBrush="#CCCCCC">
                         <ListBox ItemsSource="{Binding InputFiles}" 
                                  Height="80" 
                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
                                  SelectedIndex="{Binding SelectedFileIndex}"
-                                 Background="White"
-                                 BorderThickness="0"/>
+                                 Style="{StaticResource FileListBoxStyle}"
+                                 ItemContainerStyle="{StaticResource FileListBoxItemStyle}"
+                                 KeyDown="FileListBox_KeyDown"/>
                     </Border>
-                    <TextBlock Text="Drag files here or use menu to add them" 
+                    <TextBlock Text="Drag files here" 
                                FontStyle="Italic" 
-                               Foreground="#363636" 
-                               FontSize="12" 
+                               FontSize="13" 
                                Margin="0,3,0,0" 
                                HorizontalAlignment="Center"/>
                 </StackPanel>
             </GroupBox>
 
-            <!-- INFO PANELS -->
-            <Border Background="#F0F5FF" 
-                    BorderBrush="#4682B4" 
-                    BorderThickness="1" 
+            <Border BorderThickness="1" 
                     CornerRadius="3" 
                     Margin="0,0,0,8"
                     Padding="6"
-                    Visibility="{Binding VideoInfo, Converter={x:Static local:Converter.Instance}}">
+                    Visibility="{Binding VideoInfo, Converter={StaticResource Converter}}"
+                    Style="{StaticResource BlueBorderStyle}">
                 <StackPanel>
                     <TextBlock Text="📹 Video Information" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
-                    <Border Background="White" 
-                            BorderBrush="#90E0E0" 
-                            BorderThickness="1"
-                            Padding="5">
+                    <Border BorderThickness="1" Padding="5">
                         <TextBlock Text="{Binding VideoInfo}" 
                                    TextWrapping="Wrap" 
                                    FontFamily="Consolas" 
@@ -184,13 +288,12 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="#FFF8DC" 
-                    BorderBrush="#DAA820" 
-                    BorderThickness="1" 
+            <Border BorderThickness="1" 
                     CornerRadius="3" 
                     Padding="6"
                     Margin="0,0,0,8"
-                    Visibility="{Binding Recommendations, Converter={x:Static local:Converter.Instance}}">
+                    Visibility="{Binding Recommendations, Converter={StaticResource Converter}}"
+                    Style="{StaticResource OrangeTipBorderStyle}">
                 <StackPanel>
                     <TextBlock Text="💡 Godot Recommendations" FontWeight="Bold" FontSize="12" Margin="0,0,0,5"/>
                     <TextBlock Text="{Binding Recommendations}" 
@@ -211,69 +314,58 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Frames -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,0">
                         <TextBlock Text="Frames:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <TextBox Text="{Binding AtlasFps}" 
-                                 Width="50" MaxLength="2" 
+                                 Width="80" MaxLength="2"
+                                 PreviewTextInput="NumbersOnly_PreviewTextInput"
                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
-                        
                     </StackPanel>
 
-                    <!-- Layout -->
                     <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
                         <TextBlock Text="Layout:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <ComboBox ItemsSource="{Binding AtlasModes}" 
-                      SelectedItem="{Binding SelectedAtlasMode}"
-                      Width="100"
-                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
+                                  SelectedItem="{Binding SelectedAtlasMode}"
+                                  Width="100"
+                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
                     </StackPanel>
 
-                    <!-- Resolution -->
                     <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center" Margin="10,0,0,0">
                         <TextBlock Text="Resolution:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <ComboBox ItemsSource="{Binding AtlasResolutions}" 
-                      SelectedItem="{Binding SelectedAtlasResolution}"
-                      Width="110"
-                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
+                                  SelectedItem="{Binding SelectedAtlasResolution}"
+                                  Width="110"
+                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>
 
-            <!-- PROGRESS -->
             <ProgressBar Minimum="0" 
                          Maximum="100" 
                          Value="{Binding Progress}" 
                          Height="20" 
                          BorderThickness="1"
-                         BorderBrush="#CCCCCC"
                          Margin="0,0,0,10"/>
-            <TextBlock Text="{Binding StatusMessage}" 
-                       Margin="0,0,0,10" 
-                       TextWrapping="Wrap"
-                       HorizontalAlignment="Center"
-                       FontSize="13"
-                       Foreground="#363636"/>
 
-            <!-- ACTIONS -->
+
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                 <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}" 
-                    Command="{Binding ConvertCommand}" 
-                    IsEnabled="{Binding IsGeneratingAtlas, Converter={StaticResource BoolToInverseConverter}}"
-                    Style="{StaticResource PrimaryButtonStyle}"
-                    Height="35"
-                    FontSize="13"
-                    MinWidth="120"
-                    Margin="0,0,10,0"/>
+                        Command="{Binding ConvertCommand}" 
+                        IsEnabled="{Binding IsGeneratingAtlas, Converter={StaticResource BoolToInverseConverter}}"
+                        Style="{StaticResource BlueButtonStyle}"
+                        Height="35"
+                        FontSize="13"
+                        MinWidth="130"
+                        Margin="0,0,10,0"/>
 
                 <Button Content="{Binding IsGeneratingAtlas, Converter={StaticResource GenerateAtlasButtonTextConverter}}" 
-                    Command="{Binding GenerateAtlasCommand}" 
-                    IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                    Style="{StaticResource AlternativeButtonStyle}"
-                    Height="35"
-                    FontSize="13"
-                    MinWidth="150"
-                    Margin="10,0,0,0"/>
+                        Command="{Binding GenerateAtlasCommand}" 
+                        IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                        Style="{StaticResource GreenButtonStyle}"
+                        Height="35"
+                        FontSize="13"
+                        MinWidth="150"
+                        Margin="10,0,0,0"/>
             </StackPanel>
 
             <UniformGrid Rows="1" Columns="3">
@@ -281,15 +373,24 @@
                         Command="{Binding ClearListCommand}" 
                         IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
                         Style="{StaticResource ButtonStyle}"
-                        Margin="0,0,3,0"/>
+                        Height="35"
+                        FontSize="13"
+                        MinWidth="130"
+                        Margin="0,0,5,0"/>
                 <Button Content="Open Output Folder" 
                         Command="{Binding OpenOutputFolderCommand}" 
                         Style="{StaticResource ButtonStyle}"
-                        Margin="3,0"/>
+                        Height="35"
+                        FontSize="13"
+                        MinWidth="130"
+                        Margin="5,0"/>
                 <Button Content="About" 
                         Click="AboutButton_Click"
                         Style="{StaticResource ButtonStyle}"
-                        Margin="3,0,0,0"/>
+                        Height="35"
+                        FontSize="13"
+                        MinWidth="130"
+                        Margin="5,0,0,0"/>
             </UniformGrid>
         </StackPanel>
     </ScrollViewer>

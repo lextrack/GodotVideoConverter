@@ -8,15 +8,15 @@
     <UseWPF>true</UseWPF>
     <Company>Lextrack</Company>
     <Copyright>Lextrack</Copyright>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon>iconvideogodot.ico</ApplicationIcon>
     <Authors>Lextrack</Authors>
-    <AssemblyVersion>1.0.0.2</AssemblyVersion>
-    <FileVersion>1.0.0.2</FileVersion>
+    <AssemblyVersion>1.0.0.3</AssemblyVersion>
+    <FileVersion>1.0.0.3</FileVersion>
 	
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="icon.ico" />
+    <Content Include="iconvideogodot.ico" />
   </ItemGroup>
 
   <ItemGroup>

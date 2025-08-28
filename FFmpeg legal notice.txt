@@ -1,0 +1,6 @@
+This software uses FFmpeg for video processing.
+
+FFmpeg is licensed under LGPL/GPL.
+
+You can find more information about the license here:
+https://ffmpeg.org/legal.html

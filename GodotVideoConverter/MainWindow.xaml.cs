@@ -2,6 +2,7 @@
 using GodotVideoConverter.Views;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
 
 namespace GodotVideoConverter
 {
@@ -28,6 +29,25 @@ namespace GodotVideoConverter
                     await vm.AddFilesAsync(files);
                 }
             }
+        }
+
+        private void FileListBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete && DataContext is MainViewModel viewModel)
+            {
+                viewModel.DeleteSelectedFileCommand.Execute(null);
+                e.Handled = true;
+            }
+        }
+
+        private void NumbersOnly_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !IsTextAllowed(e.Text);
+        }
+
+        private static bool IsTextAllowed(string text)
+        {
+            return text.All(char.IsDigit);
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)

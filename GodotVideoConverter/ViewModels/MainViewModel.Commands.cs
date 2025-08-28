@@ -52,6 +52,42 @@ namespace GodotVideoConverter.ViewModels
         }
 
         [RelayCommand]
+        public void DeleteSelectedFile()
+        {
+            if (SelectedFileIndex >= 0 && SelectedFileIndex < InputFiles.Count)
+            {
+                int indexToRemove = SelectedFileIndex;
+                string removedFile = InputFiles[indexToRemove];
+
+                InputFiles.RemoveAt(indexToRemove);
+
+                if (indexToRemove < VideoDetails.Count)
+                {
+                    VideoDetails.RemoveAt(indexToRemove);
+                }
+
+                if (InputFiles.Count == 0)
+                {
+                    SelectedFileIndex = -1;
+                    VideoInfo = "";
+                    Recommendations = "";
+                    StatusMessage = "List cleared. Drag files here to convert";
+                }
+                else
+                {
+                    if (indexToRemove >= InputFiles.Count)
+                    {
+                        SelectedFileIndex = InputFiles.Count - 1;
+                    }
+
+                    StatusMessage = $"File removed: {Path.GetFileName(removedFile)}";
+
+                    _ = UpdateVideoInfoAsync();
+                }
+            }
+        }
+
+        [RelayCommand]
         public void BrowseOutputFolder()
         {
             var dialog = new OpenFolderDialog()
