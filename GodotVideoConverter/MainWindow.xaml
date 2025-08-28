@@ -346,6 +346,11 @@
                          Height="20" 
                          BorderThickness="1"
                          Margin="0,0,0,10"/>
+            <TextBlock Text="{Binding StatusMessage}" 
+                       Margin="0,0,0,10" 
+                       TextWrapping="Wrap"
+                       HorizontalAlignment="Center"
+                       FontSize="13"/>
 
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
