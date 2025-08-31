@@ -10,8 +10,8 @@
     <Copyright>Lextrack</Copyright>
     <ApplicationIcon>iconvideogodot.ico</ApplicationIcon>
     <Authors>Lextrack</Authors>
-    <AssemblyVersion>1.0.0.4</AssemblyVersion>
-    <FileVersion>1.0.0.4</FileVersion>
+    <AssemblyVersion>1.0.0.5</AssemblyVersion>
+    <FileVersion>1.0.0.5</FileVersion>
 	
   </PropertyGroup>
 
@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="14.8.1" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.8" />
   </ItemGroup>
 

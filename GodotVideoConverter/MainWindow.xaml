@@ -319,7 +319,7 @@
                         <TextBox Text="{Binding AtlasFps}" 
                                  Width="80" MaxLength="2"
                                  PreviewTextInput="NumbersOnly_PreviewTextInput"
-                                 IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
+                                 IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}" ToolTip="Select between 1 and 30 frames (5 or 10 recommended)"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0">
@@ -335,7 +335,7 @@
                         <ComboBox ItemsSource="{Binding AtlasResolutions}" 
                                   SelectedItem="{Binding SelectedAtlasResolution}"
                                   Width="110"
-                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
+                                  IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}" ToolTip="Medium resolution recommended"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>
@@ -370,7 +370,7 @@
                         Height="35"
                         FontSize="13"
                         MinWidth="150"
-                        Margin="10,0,0,0"/>
+                        Margin="10,0,0,0" ToolTip="Don't panic if the app doesn't response during the generation"/>
             </StackPanel>
 
             <UniformGrid Rows="1" Columns="3">

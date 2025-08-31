@@ -38,10 +38,10 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 | Layout Mode    | Description                          |
 | -------------- | ------------------------------------ |
 | **Grid**       | Square arrangement (auto-calculated) |
-| **Horizontal** | Single row layout                    |
-| **Vertical**   | Single column layout                 |
+
 
 **Resolution Options**: Low → Very High (or keep original) per frame
+**Script to test**: When you generate a sprite atlas, you now get a ready-to-use .gd script
 **Use Cases**: Character cycles, UI effects, particle animations, game object states, etc
 
 ### OGV Optimization Modes (Technical Specifications)

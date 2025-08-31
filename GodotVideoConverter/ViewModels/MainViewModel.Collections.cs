@@ -18,7 +18,7 @@ namespace GodotVideoConverter.ViewModels
 
         public ObservableCollection<string> AtlasResolutions { get; } = new()
         {
-            "Low", "Medium", "High", "Keep Original"
+            "Low", "Medium", "High"
         };
 
         public ObservableCollection<string> Qualities { get; } = new()
@@ -34,7 +34,8 @@ namespace GodotVideoConverter.ViewModels
 
         public ObservableCollection<string> AtlasModes { get; } = new()
         {
-            "Grid", "Horizontal", "Vertical"
+            "Grid"
+            //  "Horizontal", "Vertical" check these later
         };
     }
 }

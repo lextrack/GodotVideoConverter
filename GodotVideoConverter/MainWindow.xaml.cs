@@ -52,22 +52,28 @@ namespace GodotVideoConverter
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (DataContext is MainViewModel vm && vm.IsConverting)
+            if (DataContext is MainViewModel vm && (vm.IsConverting || vm.IsGeneratingAtlas))
             {
                 var result = MessageBox.Show(
-                    "A video conversion is in progress. Are you sure you want to exit?\nThis will cancel the current conversion.",
-                    "Conversion in Progress",
+                    "A video conversion or sprite atlas generation is in progress. Are you sure you want to exit?\nThis will cancel the current operation.",
+                    "Operation in Progress",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
 
                 if (result == MessageBoxResult.No)
                 {
                     e.Cancel = true;
+                    return;
                 }
-                else
+
+                if (vm.IsConverting || vm.IsGeneratingAtlas)
                 {
-                    KillFFmpegProcesses();
+                    vm.CancelConversionCommand.Execute(null);
+
+                    System.Threading.Thread.Sleep(500);
                 }
+
+                KillFFmpegProcesses();
             }
         }
 
@@ -75,35 +81,52 @@ namespace GodotVideoConverter
         {
             try
             {
-                foreach (var process in Process.GetProcessesByName("ffmpeg"))
+                var ffmpegProcesses = Process.GetProcessesByName("ffmpeg");
+                var ffprobeProcesses = Process.GetProcessesByName("ffprobe");
+
+                foreach (var process in ffmpegProcesses)
                 {
                     try
                     {
-                        process.Kill();
-                        process.WaitForExit(2000);
+                        if (!process.HasExited)
+                        {
+                            process.Kill();
+                            process.WaitForExit(2000);
+                        }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-
+                        Debug.WriteLine($"Error killing ffmpeg process: {ex.Message}");
+                    }
+                    finally
+                    {
+                        process.Dispose();
                     }
                 }
 
-                foreach (var process in Process.GetProcessesByName("ffprobe"))
+                foreach (var process in ffprobeProcesses)
                 {
                     try
                     {
-                        process.Kill();
-                        process.WaitForExit(2000);
+                        if (!process.HasExited)
+                        {
+                            process.Kill();
+                            process.WaitForExit(2000);
+                        }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-
+                        Debug.WriteLine($"Error killing ffprobe process: {ex.Message}");
+                    }
+                    finally
+                    {
+                        process.Dispose();
                     }
                 }
             }
-            catch
+            catch (Exception ex)
             {
-
+                Debug.WriteLine($"Error during process cleanup: {ex.Message}");
             }
         }
 

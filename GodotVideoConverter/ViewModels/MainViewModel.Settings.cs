@@ -156,6 +156,21 @@ namespace GodotVideoConverter.ViewModels
 
         partial void OnAtlasFpsChanged(int value)
         {
+            if (value > 30)
+            {
+                AtlasFps = 30;
+                StatusMessage = "Maximum FPS is 30. Value has been set to 30.";
+            }
+            else if (value < 1)
+            {
+                AtlasFps = 1;
+                StatusMessage = "Minimum FPS is 1. Value has been set to 1.";
+            }
+            else
+            {
+                StatusMessage = "";
+            }
+
             SaveSettingsDelayed();
         }
 
