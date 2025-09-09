@@ -38,6 +38,7 @@ namespace GodotVideoConverter.Services
             AnalyzeFrameRate();
             AnalyzeAudio();
             AnalyzeAspectRatio();
+            AnalyzeFormat();
 
             return CompileFinalRecommendations();
         }
@@ -46,32 +47,32 @@ namespace GodotVideoConverter.Services
         {
             if (_video.Duration <= 10)
             {
-                _general.Add("🔄 Short video detected - Perfect for UI animations, button effects, or loading screens");
-                _specialCases.Add("💡 Consider 'Ideal Loop' mode for seamless cycling");
+                _general.Add("🔄 Short video - Perfect for UI animations or button effects");
+                _specialCases.Add("💡 Use 'Ideal Loop' mode in OGV for seamless looping");
                 if (_video.FrameRate < 30)
-                    _performance.Add("💡 For smooth UI animations, consider increasing to 30+ FPS");
+                    _performance.Add("💡 Increase to 30 FPS for smoother UI animations");
             }
             else if (_video.Duration <= 30)
             {
-                _general.Add("🎬 Medium clip - Ideal for character animations, spell effects, or environmental loops");
-                _performance.Add("💡 'Standard' or 'Streaming Optimized' modes work well for this length");
+                _general.Add("🎬 Medium clip - Ideal for character animations or environmental loops");
+                _performance.Add("💡 Try 'Standard' mode in OGV for a good balance");
             }
             else if (_video.Duration <= 60)
             {
-                _general.Add("🎭 Long sequence - Great for cutscenes, character introductions, or gameplay demonstrations");
-                _performance.Add("💡 'Streaming Optimized' mode recommended for better memory management");
+                _general.Add("🎭 Long sequence - Great for cutscenes or character intros");
+                _performance.Add("💡 Use 'Streaming Optimized' mode in OGV to save memory");
             }
             else if (_video.Duration <= 180)
             {
-                _general.Add("🎪 Extended video - Suitable for intro cinematics, tutorials, or story sequences");
-                _performance.Add("💡 Consider splitting into chapters for better loading performance");
-                _performance.Add("💡 'Mobile Optimized' mode if targeting mobile devices");
+                _general.Add("🎪 Extended video - Suitable for intro cinematics or tutorials");
+                _performance.Add("💡 Split into shorter clips for faster loading in Godot");
+                _performance.Add("💡 Use 'Mobile Optimized' mode in OGV for mobile devices");
             }
             else
             {
-                _general.Add("⏰ Very long content - Consider if this needs to be a video or could be streamed externally");
-                _performance.Add("⚠️ Large videos can impact game loading times and memory usage");
-                _performance.Add("💡 Consider splitting into smaller segments or using external streaming");
+                _general.Add("⏰ Very long video - May impact loading times");
+                _performance.Add("⚠️ Large files possible with OGV; reduce resolution or FPS");
+                _performance.Add("💡 Split into smaller clips or stream externally");
             }
         }
 
@@ -80,19 +81,21 @@ namespace GodotVideoConverter.Services
             if (_video.Width > 1920 || _video.Height > 1080)
             {
                 _resolution.Add("📺 High resolution detected");
-                if (_video.Duration > 30)
-                {
-                    _performance.Add("⚠️ Large files ahead! Consider reducing resolution for better performance");
-                    _performance.Add("💡 1080p is usually sufficient for most Godot projects");
-                }
+                _performance.Add("⚠️ Large files possible with OGV; try 1080p or 720p to save space");
+                if (_video.Duration <= 30)
+                    _resolution.Add("💡 High-res is fine for short splash screens or cutscenes");
                 else
-                {
-                    _resolution.Add("💡 High-res short clips are fine for splash screens or high-quality cutscenes");
-                }
+                    _resolution.Add("💡 Use 1080p for most Godot projects, or 720p for mobiles");
             }
             else if (_video.Width <= 854 && _video.Height <= 480)
             {
-                _resolution.Add("📱 Lower resolution - Excellent for mobile games or retro-style projects");
+                _resolution.Add("📱 Low resolution - Great for mobile or retro-style games");
+                _performance.Add("💡 Use 'Mobile Optimized' mode in OGV for best performance");
+            }
+            else
+            {
+                _resolution.Add("🖼️ Standard resolution - Suitable for most Godot projects");
+                _performance.Add("💡 Try 720p for mobiles or 1080p for desktop");
             }
         }
 
@@ -102,30 +105,22 @@ namespace GodotVideoConverter.Services
             {
                 if (_video.Duration <= 5)
                 {
-                    _specialCases.Add("🎯 High FPS short clip - Great for smooth UI effects or particle showcases");
+                    _specialCases.Add("🎯 High FPS short clip - Great for smooth UI effects");
                 }
                 else
                 {
-                    _performance.Add("⚡ Very high FPS detected");
-                    _performance.Add("💡 60+ FPS is rarely needed in Godot videos - consider reducing to 30-60 FPS");
-                    _performance.Add("💡 Higher FPS = larger file sizes without much visual benefit in most cases");
+                    _performance.Add("⚡ High FPS detected");
+                    _performance.Add("💡 Reduce to 30 FPS to save space with OGV");
                 }
             }
-            else if (_video.FrameRate < 23)
+            else if (_video.FrameRate < 24)
             {
                 _performance.Add("🐌 Low FPS detected");
-                if (_video.Duration <= 10)
-                {
-                    _performance.Add("💡 For smooth gameplay videos, consider 24-30 FPS minimum");
-                }
-                else
-                {
-                    _performance.Add("💡 24+ FPS recommended for cinematic feel, 30 FPS for smoother motion");
-                }
+                _performance.Add("💡 Use 24-30 FPS for smooth cinematics or gameplay");
             }
-            else if (_video.FrameRate >= 24 && _video.FrameRate <= 30)
+            else
             {
-                _performance.Add("✨ Perfect FPS range for Godot videos - good balance of smoothness and file size");
+                _performance.Add("✨ 24-30 FPS is ideal for OGV in Godot - balances smoothness and size");
             }
         }
 
@@ -135,28 +130,23 @@ namespace GodotVideoConverter.Services
             {
                 if (_video.Duration <= 5)
                 {
-                    _audio.Add("🔊 Short video with audio - Perfect for UI sounds, notification effects");
+                    _audio.Add("🔊 Short clip with audio - Perfect for UI sounds or effects");
                 }
                 else if (_video.Duration > 60)
                 {
-                    _audio.Add("🎵 Long video with audio - Great for cutscenes and story content");
-                    _audio.Add("💡 Consider separate audio files for music to enable volume control");
+                    _audio.Add("🎵 Long video with audio - Great for cutscenes");
+                    _audio.Add("💡 Extract audio as OGG for better control in Godot");
                 }
                 else
                 {
-                    _audio.Add("🎬 Audio included - Good for character dialogues and ambient scenes");
+                    _audio.Add("🎬 Audio included - Good for character dialogues or ambient scenes");
+                    _audio.Add("💡 Consider extracting audio as OGG for flexible control in Godot");
                 }
             }
             else
             {
-                if (_video.Duration > 10 && _video.VideoCodec.ToLower().Contains("h264"))
-                {
-                    _format.Add("🔇 No audio detected - OGV format might be more efficient than H.264");
-                }
-                else if (_video.Duration <= 5)
-                {
-                    _audio.Add("🔇 Silent clip - Perfect for background loops or visual effects");
-                }
+                _audio.Add("🔇 No audio - Ideal for background loops or visual effects");
+                _format.Add("💡 Use OGV for best compatibility in Godot");
             }
         }
 
@@ -165,19 +155,19 @@ namespace GodotVideoConverter.Services
             string aspectRatio = GetSimplifiedAspectRatio();
             if (aspectRatio == "16:9")
             {
-                _resolution.Add("📺 Standard widescreen - Perfect for cutscenes and fullscreen videos");
+                _resolution.Add("📺 Widescreen (16:9) - Perfect for cutscenes or fullscreen videos");
             }
             else if (aspectRatio == "4:3")
             {
-                _resolution.Add("📟 Classic ratio - Great for retro games or UI elements");
+                _resolution.Add("📟 Classic 4:3 - Great for retro games or UI elements");
             }
             else if (aspectRatio == "1:1")
             {
-                _resolution.Add("⬜ Square format - Excellent for icons, profile pictures, or UI animations");
+                _resolution.Add("⬜ Square (1:1) - Ideal for icons or UI animations");
             }
-            else if (_video.Width > _video.Height * 2)
+            else
             {
-                _resolution.Add("🎬 Ultra-wide format - Consider if this fits your game's aspect ratio");
+                _resolution.Add("🎬 Non-standard aspect ratio - Crop or pad to match your game");
             }
         }
 
@@ -211,6 +201,24 @@ namespace GodotVideoConverter.Services
             return a;
         }
 
+        private void AnalyzeFormat()
+        {
+            if (_video.VideoCodec.ToLower().Contains("h264"))
+            {
+                _format.Add("⚠️ MP4 (H.264) not supported in Godot; convert to OGV for compatibility");
+                _format.Add("💡 Use MP4 only for non-Godot uses, like promotional videos");
+            }
+            else if (_video.VideoCodec.ToLower().Contains("vp9"))
+            {
+                _format.Add("⚠️ WebM (VP9) not supported in Godot; convert to OGV for compatibility");
+                _format.Add("💡 Use WebM only for non-Godot uses, like web playback");
+            }
+            else
+            {
+                _format.Add("✅ OGV is the only format natively supported by Godot");
+            }
+        }
+
         private string CompileFinalRecommendations()
         {
             var allRecommendations = new List<string>();
@@ -224,7 +232,7 @@ namespace GodotVideoConverter.Services
 
             if (allRecommendations.Count == 0)
             {
-                return "✅ Video looks perfect for Godot! 🎮";
+                return "✅ Video looks perfect for Godot! Use OGV for best compatibility. 🎮";
             }
 
             return string.Join("\n\n", allRecommendations);
