@@ -26,6 +26,11 @@ namespace GodotVideoConverter
                 var files = (string[])e.Data.GetData(DataFormats.FileDrop);
                 if (DataContext is MainViewModel vm)
                 {
+                    if (vm.IsLoadingFiles)
+                    {
+                        vm.StatusMessage = "Please wait until current files are validated.";
+                        return;
+                    }
                     await vm.AddFilesAsync(files);
                 }
             }

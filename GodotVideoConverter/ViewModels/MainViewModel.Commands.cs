@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace GodotVideoConverter.ViewModels
 {
@@ -22,33 +23,72 @@ namespace GodotVideoConverter.ViewModels
         [RelayCommand]
         public async Task AddFilesAsync(IEnumerable<string> files)
         {
-            var videoFiles = new List<string>();
+            IsLoadingFiles = true; 
+            StatusMessage = $"Validating {files.Count()} file(s)...";
+
+            var existingFiles = new HashSet<string>(InputFiles);
+            var placeholders = new Dictionary<string, string>();
+            var validationTasks = new List<Task<(string file, bool valid)>>();
 
             foreach (var file in files)
             {
-                if (File.Exists(file))
+                if (File.Exists(file) && !existingFiles.Contains(file))
                 {
-                    var isValid = await _service.ValidateVideoFileAsync(file);
-                    if (isValid)
+                    string placeholder = $"Loading: {Path.GetFileName(file)}...";
+                    placeholders[file] = placeholder;
+                    InputFiles.Add(placeholder);
+
+                    var task = _service.ValidateVideoFileAsync(file)
+                        .ContinueWith(t => (file, t.Result));
+                    validationTasks.Add(task);
+                }
+            }
+
+            if (validationTasks.Count == 0)
+            {
+                IsLoadingFiles = false;
+                StatusMessage = "No new files to add.";
+                return;
+            }
+
+            var results = await Task.WhenAll(validationTasks);
+            var toRemove = new List<string>();
+            var addedFiles = new List<string>();
+
+            foreach (var (file, valid) in results)
+            {
+                string placeholder = placeholders[file];
+                int index = InputFiles.IndexOf(placeholder);
+                if (index >= 0)
+                {
+                    if (valid)
                     {
-                        videoFiles.Add(file);
-                        if (!InputFiles.Contains(file))
-                        {
-                            InputFiles.Add(file);
-                        }
+                        InputFiles[index] = file;
+                        addedFiles.Add(file);
                     }
                     else
                     {
-                        StatusMessage = "Invalid video file or ffmpeg and its resources are not found in the root folder";
+                        toRemove.Add(placeholder);
                     }
                 }
             }
 
-            if (videoFiles.Count > 0)
+            foreach (var placeholder in toRemove)
             {
-                StatusMessage = $"Added {videoFiles.Count} video file(s)";
+                InputFiles.Remove(placeholder);
+            }
+
+            if (addedFiles.Count > 0)
+            {
+                StatusMessage = $"Added {addedFiles.Count} video file(s)";
                 await UpdateVideoInfoAsync();
             }
+            else
+            {
+                StatusMessage = "No valid video files added.";
+            }
+
+            IsLoadingFiles = false;
         }
 
         [RelayCommand]

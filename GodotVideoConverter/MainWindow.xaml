@@ -86,7 +86,6 @@
             <Setter Property="Background" Value="#FF3685B7"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderBrush" Value="#2F6396"/>
-            <!-- Borde más oscuro para el azul claro -->
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -100,7 +99,6 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="#66A3FF"/>
-                                <!-- Azul aún más claro para hover -->
                                 <Setter Property="BorderBrush" Value="#4A90E2"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
@@ -235,40 +233,52 @@
             </GroupBox>
 
             <GroupBox Header="Output and Files" Margin="0,0,0,10" Padding="6">
-                <StackPanel>
-                    <TextBlock Text="Output Folder:" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Grid Margin="0,0,0,5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox Grid.Column="0" 
-                                 Text="{Binding OutputFolder}" 
-                                 IsReadOnly="True" 
-                                 Margin="0,0,8,0"/>
-                        <Button Grid.Column="1" 
-                                Content="Browse..." 
-                                Command="{Binding BrowseOutputFolderCommand}" 
-                                IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                Style="{StaticResource ButtonStyle}"/>
-                    </Grid>
+                <Grid>
+                    <StackPanel>
+                        <TextBlock Text="Output Folder:" Style="{StaticResource SectionHeaderStyle}"/>
+                        <Grid Margin="0,0,0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0" 
+                         Text="{Binding OutputFolder}" 
+                         IsReadOnly="True" 
+                         Margin="0,0,8,0"/>
+                            <Button Grid.Column="1" 
+                        Content="Browse..." 
+                        Command="{Binding BrowseOutputFolderCommand}" 
+                        IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                        Style="{StaticResource ButtonStyle}"/>
+                        </Grid>
 
-                    <TextBlock Text="Files:" Style="{StaticResource SectionHeaderStyle}"/>
-                    <Border BorderThickness="1" CornerRadius="3" BorderBrush="#CCCCCC">
-                        <ListBox ItemsSource="{Binding InputFiles}" 
-                                 Height="80" 
-                                 IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                 SelectedIndex="{Binding SelectedFileIndex}"
-                                 Style="{StaticResource FileListBoxStyle}"
-                                 ItemContainerStyle="{StaticResource FileListBoxItemStyle}"
-                                 KeyDown="FileListBox_KeyDown"/>
+                        <TextBlock Text="Files:" Style="{StaticResource SectionHeaderStyle}"/>
+                        <Border BorderThickness="1" CornerRadius="3" BorderBrush="#CCCCCC">
+                            <ListBox ItemsSource="{Binding InputFiles}" 
+                         Height="80" 
+                         IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
+                         SelectedIndex="{Binding SelectedFileIndex}"
+                         Style="{StaticResource FileListBoxStyle}"
+                         ItemContainerStyle="{StaticResource FileListBoxItemStyle}"
+                         KeyDown="FileListBox_KeyDown"/>
+                        </Border>
+                        <TextBlock Text="Drag files here" 
+                       FontStyle="Italic" 
+                       FontSize="13" 
+                       Margin="0,3,0,0" 
+                       HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <Border Background="#B2616060" 
+                        Visibility="{Binding IsLoadingFiles, Converter={StaticResource BoolToVisibilityConverter}}"
+                        HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <TextBlock Text="Loading files..." 
+                       Foreground="IndianRed" 
+                       FontSize="18" 
+                       FontWeight="Bold" 
+                       HorizontalAlignment="Center" 
+                       VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="Drag files here" 
-                               FontStyle="Italic" 
-                               FontSize="13" 
-                               Margin="0,3,0,0" 
-                               HorizontalAlignment="Center"/>
-                </StackPanel>
+                </Grid>
             </GroupBox>
 
             <Border BorderThickness="1" 
@@ -347,11 +357,10 @@
                          BorderThickness="1"
                          Margin="0,0,0,10"/>
             <TextBlock Text="{Binding StatusMessage}" 
-                       Margin="0,0,0,10" 
+                       Margin="0,0,0,12" 
                        TextWrapping="Wrap"
                        HorizontalAlignment="Center"
-                       FontSize="13"/>
-
+                       FontSize="14"/>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
                 <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}" 

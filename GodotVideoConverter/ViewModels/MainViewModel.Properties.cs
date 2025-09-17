@@ -23,5 +23,6 @@ namespace GodotVideoConverter.ViewModels
         [ObservableProperty] private string? selectedAtlasResolution = "Medium";
         [ObservableProperty] private bool keepOriginalAtlasResolution = true;
         [ObservableProperty] private bool isGeneratingAtlas = false;
+        [ObservableProperty] private bool isLoadingFiles = false;
     }
 }
