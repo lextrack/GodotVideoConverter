@@ -77,88 +77,8 @@ namespace GodotVideoConverter.ViewModels
                 });
 
                 await _service.ConvertToSpriteAtlasAsync(inputFile, outFile, AtlasFps, scaleFilter, atlasMode, ffmpegProgress);
-
-                await GenerateGodotAnimationScriptAsync(outFile, frameCount, AtlasFps, columns, rows, resolutionWidth, resolutionHeight);
+                StatusMessage = $"Atlas created: {Path.GetFileName(outFile)}";
             });
-        }
-
-        private async Task GenerateGodotAnimationScriptAsync(string outputFile, int frameCount, int atlasFps, int columns, int rows, int frameWidth, int frameHeight)
-        {
-            string scriptPath = Path.ChangeExtension(outputFile, ".gd");
-            string relativeTexturePath = Path.GetFileName(outputFile);
-            float animationLength = (float)frameCount / atlasFps;
-            float keyInterval = 1.0f / atlasFps;
-
-            string scriptContent = $@"extends Sprite2D
-
-var animation_player: AnimationPlayer
-
-func _ready():
-    setup_sprite_animation()
-
-func setup_sprite_animation():
-    # Configurar la textura y frames
-    texture = load(""{relativeTexturePath}"")
-    hframes = {columns}
-    vframes = {rows}
-    
-    # Crear el AnimationPlayer
-    animation_player = AnimationPlayer.new()
-    animation_player.name = ""SpriteAnimationPlayer""
-    add_child(animation_player)
-    
-    # Crear la animación después de que el nodo esté inicializado
-    call_deferred(""create_and_play_animation"")
-
-func create_and_play_animation():
-    # Crear la animación
-    var animation = Animation.new()
-    animation.length = {animationLength:F3}
-    animation.loop_mode = Animation.LOOP_LINEAR
-    
-    # Crear track para el frame
-    var track_index = animation.add_track(Animation.TYPE_VALUE)
-    animation.track_set_path(track_index, "".:frame"")
-    animation.track_set_interpolation_type(track_index, Animation.INTERPOLATION_NEAREST)
-    
-    # Agregar keyframes
-    for i in range({frameCount}):
-        var time = i * {keyInterval:F6}
-        animation.track_insert_key(track_index, time, i)
-    
-    # Crear AnimationLibrary y agregar la animación
-    var animation_library = AnimationLibrary.new()
-    animation_library.add_animation(""sprite_animation"", animation)
-    animation_player.add_animation_library(""default"", animation_library)
-    
-    # Reproducir la animación (usar el nombre completo con librería)
-    animation_player.play(""default/sprite_animation"")
-
-# Funciones de control de la animación
-func play_animation():
-    if animation_player:
-        animation_player.play(""default/sprite_animation"")
-
-func pause_animation():
-    if animation_player and animation_player.is_playing():
-        animation_player.pause()
-
-func stop_animation():
-    if animation_player:
-        animation_player.stop()
-
-func restart_animation():
-    if animation_player:
-        animation_player.stop()
-        animation_player.play(""default/sprite_animation"")
-
-func set_animation_speed(speed: float):
-    if animation_player:
-        animation_player.speed_scale = speed
-";
-
-            await File.WriteAllTextAsync(scriptPath, scriptContent);
-            StatusMessage = $"Generated Godot animation script: {Path.GetFileName(scriptPath)}";
         }
 
         private async Task UpdateVideoInfoAsync()

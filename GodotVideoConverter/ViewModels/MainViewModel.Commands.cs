@@ -180,7 +180,7 @@ namespace GodotVideoConverter.ViewModels
                         await ConvertToSpriteAtlasAsync(file, OutputFolder, fileName, fileProgressHandler);
 
                         completedFiles++;
-                        StatusMessage = $"Atlas created: {fileName}_atlas.png ({completedFiles}/{totalFiles})";
+                        StatusMessage = $"Sprite atlas created: {fileName}_atlas.png ({completedFiles}/{totalFiles})";
                     }
                     catch (InvalidOperationException ex)
                     {
