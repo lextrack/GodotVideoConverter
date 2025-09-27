@@ -29,8 +29,23 @@ namespace GodotVideoConverter.ViewModels
                     }
                 }
 
-                int columns = (int)Math.Ceiling(Math.Sqrt(frameCount));
-                int rows = (int)Math.Ceiling((double)frameCount / columns);
+                int columns, rows;
+                if (SelectedAtlasMode == "Horizontal")
+                {
+                    columns = frameCount;
+                    rows = 1;
+                }
+                else if (SelectedAtlasMode == "Vertical")
+                {
+                    columns = 1;
+                    rows = frameCount;
+                }
+                else // Grid
+                {
+                    columns = (int)Math.Ceiling(Math.Sqrt(frameCount));
+                    rows = (int)Math.Ceiling((double)frameCount / columns);
+                }
+
                 long estimatedSizeBytes = (long)columns * rows * resolutionWidth * resolutionHeight * 4;
                 const long maxSizeBytes = 200 * 1024 * 1024;
 
@@ -77,6 +92,7 @@ namespace GodotVideoConverter.ViewModels
                 });
 
                 await _service.ConvertToSpriteAtlasAsync(inputFile, outFile, AtlasFps, scaleFilter, atlasMode, ffmpegProgress);
+
                 StatusMessage = $"Atlas created: {Path.GetFileName(outFile)}";
             });
         }
@@ -135,102 +151,6 @@ namespace GodotVideoConverter.ViewModels
                 {
                     VideoInfo += $" | Audio: {selectedVideo.AudioCodec}";
                 }
-
-                Recommendations = _recommendationService.GetGodotRecommendations(selectedVideo, KeepAudio);
-            }
-        }
-
-        private void UpdateOgvModeAvailability()
-        {
-            bool shouldBeEnabled = !string.IsNullOrEmpty(SelectedFormat) &&
-                                 SelectedFormat.StartsWith("OGV", StringComparison.OrdinalIgnoreCase);
-            IsOgvModeEnabled = shouldBeEnabled;
-
-            if (!IsOgvModeEnabled && _isInitialized && SelectedOgvMode != "Standard")
-            {
-                SelectedOgvMode = "Standard";
-            }
-        }
-
-        [RelayCommand]
-        public async Task ConvertAsync()
-        {
-            if (InputFiles.Count == 0)
-            {
-                StatusMessage = "No files selected.";
-                return;
-            }
-
-            if (!ValidateConversionParameters())
-                return;
-
-            IsConverting = true;
-            Progress = 0;
-
-            try
-            {
-                Directory.CreateDirectory(OutputFolder);
-
-                int totalFiles = InputFiles.Count;
-                for (int fileIndex = 0; fileIndex < InputFiles.Count; fileIndex++)
-                {
-                    var file = InputFiles[fileIndex];
-                    string fileName = Path.GetFileNameWithoutExtension(file);
-
-                    StatusMessage = $"Converting {fileName}... ({fileIndex + 1}/{totalFiles})";
-
-                    try
-                    {
-                        double duration = await _service.GetVideoDurationAsync(file);
-                        if (duration <= 0)
-                        {
-                            StatusMessage = $"Could not read duration of {fileName}";
-                            continue;
-                        }
-
-                        var conversionParams = BuildConversionParameters(file, fileName);
-                        if (conversionParams == null)
-                        {
-                            StatusMessage = $"Error building conversion parameters for {fileName}";
-                            continue;
-                        }
-
-                        var progressHandler = new Progress<int>(p => {
-                            int overallProgress = (int)((fileIndex * 100.0 + p) / totalFiles);
-                            Progress = overallProgress;
-                        });
-
-                        await _service.ConvertAsync(
-                            file,
-                            conversionParams.OutputFile,
-                            conversionParams.Arguments,
-                            duration,
-                            progressHandler);
-
-                        StatusMessage = $"Converted: {Path.GetFileName(conversionParams.OutputFile)}";
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        StatusMessage = "Conversion cancelled by user";
-                        return;
-                    }
-                    catch (Exception ex)
-                    {
-                        StatusMessage = $"Error converting {fileName}: {ex.Message}";
-                        continue;
-                    }
-                }
-
-                Progress = 100;
-                StatusMessage = "All conversions completed!";
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Conversion error: {ex.Message}";
-            }
-            finally
-            {
-                IsConverting = false;
             }
         }
 
@@ -320,7 +240,7 @@ namespace GodotVideoConverter.ViewModels
                         "Ultra" => "-c:v libvpx-vp9 -crf 10 -b:v 0 -cpu-used 0 -row-mt 1 -tile-columns 2",
                         "High" => "-c:v libvpx-vp9 -crf 15 -b:v 0 -cpu-used 1 -row-mt 1 -tile-columns 1",
                         "Balanced" => "-c:v libvpx-vp9 -crf 25 -b:v 0 -cpu-used 2 -row-mt 1",
-                        "Optimized" => "-c:v libvpx-vp9 -crf 32 -igrafica 0 -cpu-used 4 -row-mt 1",
+                        "Optimized" => "-c:v libvpx-vp9 -crf 32 -b:v 0 -cpu-used 4 -row-mt 1",
                         "Tiny" => "-c:v libvpx-vp9 -crf 40 -b:v 0 -cpu-used 5 -deadline realtime",
                         _ => "-c:v libvpx-vp9 -crf 25 -b:v 0 -cpu-used 2 -row-mt 1"
                     };

@@ -34,8 +34,7 @@ namespace GodotVideoConverter.ViewModels
 
         public ObservableCollection<string> AtlasModes { get; } = new()
         {
-            "Grid"
-            //  "Horizontal", "Vertical" check these later
+            "Grid", "Horizontal", "Vertical"
         };
     }
 }

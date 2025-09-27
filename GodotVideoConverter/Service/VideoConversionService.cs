@@ -250,93 +250,92 @@ namespace GodotVideoConverter.Services
 
         public async Task<bool> ValidateVideoFileAsync(string file)
         {
-            try
-            {
-                var videoInfo = await GetVideoInfoAsync(file);
-                return videoInfo.IsValid;
-            }
-            catch
-            {
-                return false;
-            }
+            var videoInfo = await GetVideoInfoAsync(file);
+            return videoInfo.IsValid;
         }
 
-        public async Task ConvertAsync(string inputFile, string outputFile, string arguments, double duration, IProgress<int> progress)
+        public async Task ConvertToSpriteAtlasAsync(string inputFile, string outputFile, int fps, string scaleFilter, string atlasMode, IProgress<int> progress)
         {
-            await RunFFmpegAsync(arguments, duration, outputFile, progress);
-        }
-
-        public async Task<List<string>> ConvertToSpriteAtlasAsync(string inputFile, string outputFile, int fps, string scaleFilter, string atlasMode, IProgress<int> progress)
-        {
-            var frameFiles = new List<string>();
-            string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            var tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(tempDir);
 
             try
             {
-                string fpsFilter = fps > 0 ? $"fps={fps}" : "";
-                string filterChain = "";
-                if (!string.IsNullOrEmpty(fpsFilter))
+                var videoInfo = await GetVideoInfoAsync(inputFile);
+                if (!videoInfo.IsValid)
                 {
-                    filterChain = fpsFilter;
-                }
-                if (!string.IsNullOrEmpty(scaleFilter))
-                {
-                    if (!string.IsNullOrEmpty(filterChain))
-                    {
-                        filterChain += ",";
-                    }
-                    filterChain += scaleFilter;
+                    throw new InvalidOperationException("Invalid video file");
                 }
 
-                string vfArg = !string.IsNullOrEmpty(filterChain) ? $"-vf {filterChain}" : "";
-                string args = $"-i \"{inputFile}\" {vfArg} -pix_fmt rgba \"{Path.Combine(tempDir, "frame_%04d.png")}\" -y";
+                double duration = videoInfo.Duration;
+                int frameCount = (int)(duration * fps);
 
-                double duration = await GetVideoDurationAsync(inputFile);
-                await RunFFmpegAsync(args, duration, null, progress);
+                if (frameCount == 0)
+                {
+                    throw new InvalidOperationException("No frames to process. Video duration may be too short or FPS too low.");
+                }
 
-                frameFiles.AddRange(Directory.GetFiles(tempDir, "frame_*.png").OrderBy(f => f));
+                string filter = string.IsNullOrEmpty(scaleFilter) ? "" : $"-vf {scaleFilter}";
+                string frameOutput = Path.Combine(tempDir, "%d.png");
+                string arguments = $"-i \"{inputFile}\" -vf fps={fps} {filter} -vsync 0 \"{frameOutput}\"";
+
+                await RunFFmpegAsync(arguments, duration, null, progress);
+
+                string[] frameFiles = Directory.GetFiles(tempDir, "*.png");
+                if (frameFiles.Length == 0)
+                {
+                    throw new InvalidOperationException("No frames generated. Conversion may have failed.");
+                }
 
                 using var collection = new MagickImageCollection();
-                foreach (var frame in frameFiles)
+                foreach (var frameFile in frameFiles.OrderBy(f => int.Parse(Path.GetFileNameWithoutExtension(f))))
                 {
-                    collection.Add(new MagickImage(frame));
+                    collection.Add(new MagickImage(frameFile));
                 }
 
-                using var result = CreateGridAtlas(collection, frameFiles.Count, progress);
+                int columns, rows;
+                if (atlasMode == "Horizontal")
+                {
+                    columns = frameCount;
+                    rows = 1;
+                }
+                else if (atlasMode == "Vertical")
+                {
+                    columns = 1;
+                    rows = frameCount;
+                }
+                else // Grid
+                {
+                    columns = (int)Math.Ceiling(Math.Sqrt(frameCount));
+                    rows = (int)Math.Ceiling((double)frameCount / columns);
+                }
+
+                var settings = new MontageSettings
+                {
+                    Geometry = new MagickGeometry((uint)collection[0].Width, (uint)collection[0].Height),
+                    TileGeometry = new MagickGeometry((uint)columns, (uint)rows),
+                    BackgroundColor = MagickColors.Transparent,
+                    BorderWidth = 0
+                };
+
+                var result = collection.Montage(settings);
                 result.Write(outputFile);
+                progress?.Report(100);
             }
             finally
             {
                 try
                 {
-                    Directory.Delete(tempDir, true);
+                    if (Directory.Exists(tempDir))
+                    {
+                        Directory.Delete(tempDir, true);
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Error cleaning temp directory: {ex.Message}");
+                    Debug.WriteLine($"Error cleaning up temporary directory {tempDir}: {ex.Message}");
                 }
             }
-
-            return frameFiles;
-        }
-
-        private IMagickImage<ushort> CreateGridAtlas(MagickImageCollection collection, int frameCount, IProgress<int> progress = null)
-        {
-            int columns = (int)Math.Ceiling(Math.Sqrt(frameCount));
-            int rows = (int)Math.Ceiling((double)frameCount / columns);
-
-            var settings = new MontageSettings
-            {
-                Geometry = new MagickGeometry((uint)collection[0].Width, (uint)collection[0].Height),
-                TileGeometry = new MagickGeometry((uint)columns, (uint)rows),
-                BackgroundColor = MagickColors.Transparent,
-                BorderWidth = 0
-            };
-
-            var result = collection.Montage(settings);
-            progress?.Report(100);
-            return result;
         }
 
         private async Task RunFFmpegAsync(string arguments, double totalSeconds, string? outputFile, IProgress<int> progress, CancellationToken cancellationToken = default)

@@ -113,6 +113,11 @@ namespace GodotVideoConverter.ViewModels
             catch { }
         }
 
+        private void UpdateOgvModeAvailability()
+        {
+            IsOgvModeEnabled = SelectedFormat == "OGV (Default for Godot)";
+        }
+
         partial void OnSelectedFormatChanged(string? value)
         {
             UpdateOgvModeAvailability();
