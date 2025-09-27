@@ -338,7 +338,7 @@ namespace GodotVideoConverter.Services
             }
         }
 
-        private async Task RunFFmpegAsync(string arguments, double totalSeconds, string? outputFile, IProgress<int> progress, CancellationToken cancellationToken = default)
+        public async Task RunFFmpegAsync(string arguments, double totalSeconds, string? outputFile, IProgress<int> progress, CancellationToken cancellationToken = default)
         {
             await _processSemaphore.WaitAsync(cancellationToken);
 
@@ -377,6 +377,7 @@ namespace GodotVideoConverter.Services
                     var timeRegex = new Regex(@"time=(\d+):(\d+):(\d+(?:\.\d+)?)", RegexOptions.Compiled);
                     var lastProgress = 0;
                     var progressLock = new object();
+                    var errorMessages = new List<string>();
 
                     var stderrTask = Task.Run(async () =>
                     {
@@ -420,11 +421,10 @@ namespace GodotVideoConverter.Services
                                     }
                                 }
 
-                                if (line.Contains("No such file or directory") ||
-                                    line.Contains("Invalid data found") ||
-                                    line.Contains("Permission denied"))
+                                // Collect error messages for debugging
+                                if (line.Contains("Error") || line.Contains("Invalid") || line.Contains("No such") || line.Contains("Permission denied"))
                                 {
-                                    throw new InvalidOperationException($"FFmpeg error: {line}");
+                                    errorMessages.Add(line);
                                 }
                             }
                         }
@@ -477,7 +477,8 @@ namespace GodotVideoConverter.Services
 
                     if (process.ExitCode != 0)
                     {
-                        throw new InvalidOperationException($"Conversion failed with exit code {process.ExitCode}");
+                        string errorDetails = errorMessages.Any() ? string.Join("; ", errorMessages) : "Unknown FFmpeg error";
+                        throw new InvalidOperationException($"FFmpeg conversion failed with exit code {process.ExitCode}: {errorDetails}");
                     }
 
                     if (outputFile != null && !File.Exists(outputFile))
@@ -505,13 +506,13 @@ namespace GodotVideoConverter.Services
                     }
                     throw;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     if (outputFile != null && File.Exists(outputFile))
                     {
                         try { File.Delete(outputFile); } catch { }
                     }
-                    throw;
+                    throw new InvalidOperationException($"FFmpeg error: {ex.Message}", ex);
                 }
                 finally
                 {

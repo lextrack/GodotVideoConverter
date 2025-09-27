@@ -23,7 +23,7 @@ namespace GodotVideoConverter.ViewModels
         [RelayCommand]
         public async Task AddFilesAsync(IEnumerable<string> files)
         {
-            IsLoadingFiles = true; 
+            IsLoadingFiles = true;
             StatusMessage = $"Validating {files.Count()} file(s)...";
 
             var existingFiles = new HashSet<string>(InputFiles);
@@ -290,6 +290,151 @@ namespace GodotVideoConverter.ViewModels
             finally
             {
                 IsGeneratingAtlas = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task ConvertAsync()
+        {
+            if (InputFiles.Count == 0)
+            {
+                StatusMessage = "No files selected for conversion.";
+                return;
+            }
+
+            if (!ValidateConversionParameters())
+            {
+                return;
+            }
+
+            IsConverting = true;
+            Progress = 0;
+
+            try
+            {
+                Directory.CreateDirectory(OutputFolder);
+
+                StatusMessage = "Starting video conversion...";
+
+                int totalFiles = InputFiles.Count;
+                int completedFiles = 0;
+
+                foreach (var file in InputFiles.ToList())
+                {
+                    try
+                    {
+                        int fileIndex = InputFiles.IndexOf(file);
+                        var videoInfo = VideoDetails[fileIndex];
+
+                        string fileName = Path.GetFileNameWithoutExtension(file);
+                        StatusMessage = $"Converting {fileName} to {SelectedFormat}... ({completedFiles + 1}/{totalFiles})";
+
+                        var fileProgressHandler = new Progress<int>(fileProgress =>
+                        {
+                            int totalProgress = (int)((completedFiles * 100.0 + fileProgress) / totalFiles);
+                            Progress = Math.Min(totalProgress, 99);
+                        });
+
+                        var conversionParams = BuildConversionParameters(file, fileName);
+                        if (conversionParams == null)
+                        {
+                            StatusMessage = $"Skipping {fileName}: Invalid parameters.";
+                            continue;
+                        }
+
+                        await _service.RunFFmpegAsync(conversionParams.Arguments, videoInfo.Duration, conversionParams.OutputFile, fileProgressHandler);
+
+                        completedFiles++;
+                        StatusMessage = $"Converted: {Path.GetFileName(conversionParams.OutputFile)} ({completedFiles}/{totalFiles})";
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        StatusMessage = $"Error with {Path.GetFileNameWithoutExtension(file)}: {ex.Message}";
+
+                        await Task.Delay(2000);
+
+                        if (InputFiles.Count > 1)
+                        {
+                            StatusMessage += " - Continuing with next file...";
+                            await Task.Delay(1000);
+                            completedFiles++;
+                            continue;
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                    catch (TimeoutException ex)
+                    {
+                        StatusMessage = $"Timeout processing {Path.GetFileNameWithoutExtension(file)}: {ex.Message}";
+
+                        await Task.Delay(2000);
+
+                        if (InputFiles.Count > 1)
+                        {
+                            StatusMessage += " - Continuing with next file...";
+                            await Task.Delay(1000);
+                            completedFiles++;
+                            continue;
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        StatusMessage = $"Unexpected error with {Path.GetFileNameWithoutExtension(file)}: {ex.Message}";
+                        System.Diagnostics.Debug.WriteLine($"Error converting video {file}: {ex}");
+
+                        await Task.Delay(2000);
+
+                        if (InputFiles.Count > 1)
+                        {
+                            StatusMessage += " - Continuing with next file...";
+                            await Task.Delay(1000);
+                            completedFiles++;
+                            continue;
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
+                }
+
+                Progress = 100;
+                if (completedFiles == totalFiles)
+                {
+                    StatusMessage = completedFiles == 1
+                        ? "Video converted successfully!"
+                        : $"All videos converted! ({completedFiles}/{totalFiles} files)";
+                }
+                else
+                {
+                    StatusMessage = $"Conversion completed: {completedFiles}/{totalFiles} files processed successfully";
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                StatusMessage = $"Permission error: {ex.Message}. Check output folder permissions.";
+                Progress = 0;
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                StatusMessage = $"Error: {ex.Message}. Verify output folder.";
+                Progress = 0;
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"General error during conversion: {ex.Message}";
+                Progress = 0;
+                System.Diagnostics.Debug.WriteLine($"General error in ConvertAsync: {ex}");
+            }
+            finally
+            {
+                IsConverting = false;
             }
         }
     }

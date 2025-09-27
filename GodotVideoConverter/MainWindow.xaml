@@ -336,7 +336,7 @@
                         <TextBlock Text="Layout:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <ComboBox ItemsSource="{Binding AtlasModes}" 
                                   SelectedItem="{Binding SelectedAtlasMode}"
-                                  Width="110"
+                                  Width="115"
                                   IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"/>
                     </StackPanel>
 
@@ -344,7 +344,7 @@
                         <TextBlock Text="Resolution:" VerticalAlignment="Center" Margin="0,0,5,0"/>
                         <ComboBox ItemsSource="{Binding AtlasResolutions}" 
                                   SelectedItem="{Binding SelectedAtlasResolution}"
-                                  Width="110"
+                                  Width="115"
                                   IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}" ToolTip="Medium resolution recommended"/>
                     </StackPanel>
                 </Grid>

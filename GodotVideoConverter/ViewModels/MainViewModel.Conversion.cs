@@ -151,6 +151,12 @@ namespace GodotVideoConverter.ViewModels
                 {
                     VideoInfo += $" | Audio: {selectedVideo.AudioCodec}";
                 }
+                Recommendations = _recommendationService.GetGodotRecommendations(selectedVideo, KeepAudio);
+            }
+            else
+            {
+                VideoInfo = $"Invalid video file: {fileName}";
+                Recommendations = "No recommendations available for invalid video.";
             }
         }
 
@@ -196,7 +202,6 @@ namespace GodotVideoConverter.ViewModels
                 }
 
                 var (codecVideo, codecAudio, additionalArgs) = GetCodecParameters();
-
                 string filterChain = BuildFilterChain();
                 string filterArg = !string.IsNullOrEmpty(filterChain) ? $"-vf \"{filterChain}\"" : "";
                 string args = $"-i \"{inputFile}\" {filterArg} {codecVideo} {codecAudio} {additionalArgs} \"{outFile}\"";
@@ -261,7 +266,6 @@ namespace GodotVideoConverter.ViewModels
 
                     codecVideo = baseTheoraArgs;
                     codecAudio = KeepAudio ? "-c:a libvorbis -q:a 3 -ar 44100 -ac 2" : "-an";
-
                     additionalArgs = IsOgvModeEnabled ? GetOgvModeArguments() : "-pix_fmt yuv420p -g 30 -keyint_min 30 -threads 0";
                     break;
             }
@@ -310,14 +314,15 @@ namespace GodotVideoConverter.ViewModels
                 }
             }
 
+            string combinedFilter = "";
             if (!string.IsNullOrEmpty(scaleFilter) && !string.IsNullOrEmpty(fpsFilter))
-                return $"{scaleFilter},{fpsFilter}";
+                combinedFilter = $"{scaleFilter},{fpsFilter}";
             else if (!string.IsNullOrEmpty(scaleFilter))
-                return scaleFilter;
+                combinedFilter = scaleFilter;
             else if (!string.IsNullOrEmpty(fpsFilter))
-                return fpsFilter;
+                combinedFilter = fpsFilter;
 
-            return "";
+            return combinedFilter;
         }
 
         private string GetFileExtension()
