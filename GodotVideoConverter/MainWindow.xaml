@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:GodotVideoConverter.ViewModels"
         xmlns:local="clr-namespace:GodotVideoConverter"
-        Title="Godot Video Converter" Height="750" Width="1050" WindowStartupLocation="CenterScreen"
+        Title="Godot Video Converter" Height="800" Width="1100" WindowStartupLocation="CenterScreen"
         AllowDrop="True"
         DragOver="Window_DragOver"
         Drop="Window_Drop"
@@ -358,7 +358,7 @@
                             Style="{StaticResource OrangeTipBorderStyle}">
                         <StackPanel>
                             <TextBlock Text="💡 Godot Recommendations" FontWeight="Bold" FontSize="11" Margin="0,0,0,4"/>
-                            <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+                            <ScrollViewer MaxHeight="221" VerticalScrollBarVisibility="Auto">
                                 <TextBlock Text="{Binding Recommendations}"
                                            TextWrapping="Wrap"
                                            FontSize="10"/>
@@ -381,7 +381,7 @@
                        Margin="0,0,0,10"
                        TextWrapping="Wrap"
                        HorizontalAlignment="Center"
-                       FontSize="12"/>
+                       FontSize="13"/>
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
                 <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}"
