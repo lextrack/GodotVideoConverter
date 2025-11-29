@@ -421,7 +421,6 @@ namespace GodotVideoConverter.Services
                                     }
                                 }
 
-                                // Collect error messages for debugging
                                 if (line.Contains("Error") || line.Contains("Invalid") || line.Contains("No such") || line.Contains("Permission denied"))
                                 {
                                     errorMessages.Add(line);
@@ -457,10 +456,6 @@ namespace GodotVideoConverter.Services
                         await process.WaitForExitAsync(cancellationToken);
                     }, cancellationToken);
 
-                    // Calculate dynamic timeout based on video duration
-                    // Base: 5 minutes for short videos
-                    // Add 2 minutes per minute of video duration
-                    // Minimum 5 minutes, maximum 60 minutes
                     int timeoutMinutes = totalSeconds > 0
                         ? Math.Clamp((int)(5 + (totalSeconds / 60.0 * 2)), 5, 60)
                         : 5;
