@@ -14,7 +14,7 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="Godot Video Converter" FontSize="15" FontWeight="Bold" HorizontalAlignment="Center"/>
-        <TextBlock Grid.Row="0" Text="Version 1.0.0.7" Margin="0,25,0,0" HorizontalAlignment="Center"/>
+        <TextBlock Grid.Row="0" Text="Version 1.0.0.8" Margin="0,25,0,0" HorizontalAlignment="Center"/>
 
         <TextBlock Grid.Row="1" TextWrapping="Wrap" Margin="0,10">
             <Run Text="A specialized tool for converting videos to formats optimized for Godot Engine, particularly OGV format."/>
