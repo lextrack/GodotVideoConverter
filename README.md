@@ -20,11 +20,13 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 | **OGV** (Recommended) | Theora/Vorbis | Native Godot integration     | Full native support           | All Godot projects  |
 | **MP4** (Courtesy)    | H.264/AAC     | Cross-platform compatibility | Requires third-party plugins | Non-Godot use only  |
 | **WebM** (Courtesy)   | VP9/Opus      | Web applications             | Limited via plugins          | Web exports/testing |
+| **GIF** (Animated)    | Palette-based | Animations & UI elements     | Via AnimatedTexture or Sprite | UI animations, icons |
 
 **Important Notes:**
 
 * Only OGV format is officially supported by Godot without plugins
 * MP4/WebM options are provided for convenience in non-Godot workflows
+* GIF format is useful for small animations and UI elements (no audio support)
 * For Godot projects, OGV is strongly recommended for:
 
   * Guaranteed compatibility across all platforms
@@ -97,7 +99,7 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 1. **Add files**: Drag videos into the window or use file dialog
 2. **Choose output type**:
 
-   * **Video Conversion**: Convert to OGV/MP4/WebM
+   * **Video Conversion**: Convert to OGV/MP4/WebM/GIF
    * **Sprite Atlas**: Generate PNG sprite sheets
 3. **Configure**:
 
