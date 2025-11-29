@@ -30,7 +30,7 @@ namespace GodotVideoConverter.ViewModels
                 {
                     OutputFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "output");
                 }
-                if (string.IsNullOrEmpty(SelectedFormat) || SelectedFormat == "GIF (Animated)")
+                if (string.IsNullOrEmpty(SelectedFormat))
                 {
                     SelectedFormat = "OGV (Default for Godot)";
                 }
