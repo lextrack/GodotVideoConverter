@@ -6,7 +6,7 @@ namespace GodotVideoConverter.ViewModels
     {
         public ObservableCollection<string> Formats { get; } = new()
         {
-            "OGV (Default for Godot)", "MP4 (H.264/AAC)", "WebM (VP9/Opus)"
+            "OGV (Default for Godot)", "MP4 (H.264/AAC)", "WebM (VP9/Opus)", "GIF (Animated)"
         };
 
         public ObservableCollection<string> Resolutions { get; } = new()

@@ -202,8 +202,7 @@ namespace GodotVideoConverter.ViewModels
                 }
 
                 var (codecVideo, codecAudio, additionalArgs) = GetCodecParameters();
-                string filterChain = BuildFilterChain();
-                string filterArg = !string.IsNullOrEmpty(filterChain) ? $"-vf \"{filterChain}\"" : "";
+                string filterArg = BuildFilterArgument();
                 string args = $"-i \"{inputFile}\" {filterArg} {codecVideo} {codecAudio} {additionalArgs} \"{outFile}\"";
 
                 return new ConversionParameters
@@ -253,6 +252,13 @@ namespace GodotVideoConverter.ViewModels
                     additionalArgs = "";
                     break;
 
+                case "GIF (Animated)":
+                    // GIF doesn't have a video codec parameter, filter is handled separately
+                    codecVideo = "";
+                    codecAudio = "-an"; // GIF doesn't support audio
+                    additionalArgs = "-loop 0"; // 0 = infinite loop
+                    break;
+
                 default: // OGV
                     string baseTheoraArgs = SelectedQuality switch
                     {
@@ -284,6 +290,67 @@ namespace GodotVideoConverter.ViewModels
                 "Mobile Optimized" => "-pix_fmt yuv420p -g 60 -keyint_min 30 -bf 0 -maxrate 800k -bufsize 1600k",
                 _ => "-pix_fmt yuv420p -g 30 -keyint_min 30"
             };
+        }
+
+        private string BuildFilterArgument()
+        {
+            if (SelectedFormat == "GIF (Animated)")
+            {
+                return BuildGifFilter();
+            }
+            else
+            {
+                string filterChain = BuildFilterChain();
+                return !string.IsNullOrEmpty(filterChain) ? $"-vf \"{filterChain}\"" : "";
+            }
+        }
+
+        private string BuildGifFilter()
+        {
+            // Get user-defined scale and fps settings
+            string userScale = "";
+            if (!string.IsNullOrEmpty(SelectedResolution) && SelectedResolution != "Keep original")
+            {
+                var parts = SelectedResolution.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                {
+                    userScale = $"scale={w}:{h}:force_original_aspect_ratio=decrease,";
+                }
+            }
+
+            double userFps = 20; // default
+            if (!string.IsNullOrWhiteSpace(Fps))
+            {
+                if (double.TryParse(Fps, out double fpsValue) && fpsValue > 0 && fpsValue <= 120)
+                {
+                    userFps = fpsValue;
+                }
+            }
+
+            // Build GIF palette filter based on quality preset
+            string paletteSettings = SelectedQuality switch
+            {
+                "Ultra" => "max_colors=256:stats_mode=diff",
+                "High" => "max_colors=256:stats_mode=diff",
+                "Balanced" => "max_colors=128:stats_mode=diff",
+                "Optimized" => "max_colors=64:stats_mode=diff",
+                "Tiny" => "max_colors=32:stats_mode=diff",
+                _ => "max_colors=128:stats_mode=diff"
+            };
+
+            string ditherSettings = SelectedQuality switch
+            {
+                "Ultra" => "dither=bayer:bayer_scale=5",
+                "High" => "dither=bayer:bayer_scale=4",
+                "Balanced" => "dither=bayer:bayer_scale=3",
+                "Optimized" => "dither=sierra2_4a",
+                "Tiny" => "dither=sierra2_4a",
+                _ => "dither=bayer:bayer_scale=3"
+            };
+
+            string gifFilter = $"fps={userFps},{userScale}scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos,split[s0][s1];[s0]palettegen={paletteSettings}[p];[s1][p]paletteuse={ditherSettings}";
+
+            return $"-vf \"{gifFilter}\"";
         }
 
         private string BuildFilterChain()
@@ -331,6 +398,7 @@ namespace GodotVideoConverter.ViewModels
             {
                 "MP4 (H.264/AAC)" => ".mp4",
                 "WebM (VP9/Opus)" => ".webm",
+                "GIF (Animated)" => ".gif",
                 _ => ".ogv"
             };
         }
