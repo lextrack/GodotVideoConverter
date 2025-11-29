@@ -197,12 +197,12 @@ namespace GodotVideoConverter.ViewModels
                         }
                         else
                         {
-                            return;
+                            throw;
                         }
                     }
-                    catch (TimeoutException)
+                    catch (TimeoutException ex)
                     {
-                        StatusMessage = $"Timeout processing {Path.GetFileNameWithoutExtension(file)}: Video took too long to process";
+                        StatusMessage = $"Timeout processing {Path.GetFileNameWithoutExtension(file)}: {ex.Message}";
 
                         await Task.Delay(2000);
 
@@ -215,12 +215,12 @@ namespace GodotVideoConverter.ViewModels
                         }
                         else
                         {
-                            return;
+                            throw;
                         }
                     }
-                    catch (OutOfMemoryException)
+                    catch (OutOfMemoryException ex)
                     {
-                        StatusMessage = $"Insufficient memory for {Path.GetFileNameWithoutExtension(file)}: Reduce video resolution or duration";
+                        StatusMessage = $"Insufficient memory for {Path.GetFileNameWithoutExtension(file)}: {ex.Message}";
 
                         await Task.Delay(2000);
 
@@ -233,7 +233,7 @@ namespace GodotVideoConverter.ViewModels
                         }
                         else
                         {
-                            return;
+                            throw;
                         }
                     }
                     catch (Exception ex)
@@ -253,7 +253,7 @@ namespace GodotVideoConverter.ViewModels
                         }
                         else
                         {
-                            return;
+                            throw;
                         }
                     }
                 }

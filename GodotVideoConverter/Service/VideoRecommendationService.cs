@@ -60,7 +60,7 @@ namespace GodotVideoConverter.Services
             else if (_video.Duration <= 60)
             {
                 _general.Add("🎭 Long sequence - Great for cutscenes or character intros");
-                _performance.Add("💡 Use 'Streaming Optimized' mode in OGV to save memory");
+                _performance.Add("💡 Use 'Controlled Bitrate' mode in OGV to save memory");
             }
             else if (_video.Duration <= 180)
             {

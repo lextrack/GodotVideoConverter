@@ -457,12 +457,20 @@ namespace GodotVideoConverter.Services
                         await process.WaitForExitAsync(cancellationToken);
                     }, cancellationToken);
 
-                    var timeoutTask = Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+                    // Calculate dynamic timeout based on video duration
+                    // Base: 5 minutes for short videos
+                    // Add 2 minutes per minute of video duration
+                    // Minimum 5 minutes, maximum 60 minutes
+                    int timeoutMinutes = totalSeconds > 0
+                        ? Math.Clamp((int)(5 + (totalSeconds / 60.0 * 2)), 5, 60)
+                        : 5;
+
+                    var timeoutTask = Task.Delay(TimeSpan.FromMinutes(timeoutMinutes), cancellationToken);
                     var completedTask = await Task.WhenAny(processTask, timeoutTask);
 
                     if (completedTask == timeoutTask)
                     {
-                        throw new TimeoutException("FFmpeg conversion timed out after 5 minutes");
+                        throw new TimeoutException($"FFmpeg conversion timed out after {timeoutMinutes} minutes");
                     }
 
                     cancellationTokenSource.Cancel();
