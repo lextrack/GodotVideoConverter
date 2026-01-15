@@ -1,6 +1,6 @@
 # Godot Video Converter
 
-A specialized video conversion tool for Godot Engine developers.
+A specialized video conversion tool for Godot Engine developers. This application also works for Love2D.
 
 ## Purpose
 
