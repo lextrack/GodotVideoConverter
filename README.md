@@ -2,7 +2,7 @@
 
 A specialized video conversion tool for Godot Engine developers.
 
-## 🎯 Purpose
+## Purpose
 
 Convert videos to Godot-compatible formats (especially OGV) with:
 
@@ -11,7 +11,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
 * Batch processing capabilities
 * Sprite atlas generation from videos
 
-## ✨ Key Features
+## Key Features
 
 ### Supported Formats
 
@@ -33,7 +33,7 @@ Convert videos to Godot-compatible formats (especially OGV) with:
   * No additional plugin dependencies
   * Consistent playback performance
 
-### 🎨 Sprite Atlas Generation
+### Sprite Atlas Generation
 
 Convert videos into **sprite atlases** for 2D animations in Godot:
 
@@ -69,7 +69,7 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 
 *Conversion time varies based on resolution, FPS, and hardware capabilities*
 
-## 🖥️ User Interface Features
+## User Interface Features
 
 * **Drag & drop** file input
 * Real-time **video metadata display** (codec, resolution, duration)
@@ -79,7 +79,7 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 * **Presets manager** for frequent configurations
 * **Sprite atlas generator** with layout options
 
-## ⚙️ General Technical Specifications
+## General Technical Specifications
 
 * **Resolution options**: 3840x2160 (4K) to 426x240 (240p)
 * **FPS control**: Customizable (default: 30)
@@ -88,13 +88,13 @@ Convert videos into **sprite atlases** for 2D animations in Godot:
 * **Settings**: Persist between sessions
 * **Atlas generation**: PNG output with customizable frame extraction
 
-## 📦 Installation & Requirements
+## Installation & Requirements
 
 1. Download the latest release
 2. **No installation required** - portable executable
 3. **FFmpeg included** - no additional dependencies
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 1. **Add files**: Drag videos into the window or use file dialog
 2. **Choose output type**:
