@@ -1,6 +1,10 @@
-This software uses FFmpeg for video processing.
+This application is licensed under the GNU General Public License v3.0.
 
-FFmpeg is licensed under LGPL/GPL.
+This software uses FFmpeg version 7.1.1.
 
-You can find more information about the license here:
-https://ffmpeg.org/legal.html
+FFmpeg is licensed under the GNU General Public License v2.0 or later.
+
+FFmpeg source code is available at:
+https://github.com/FFmpeg/FFmpeg
+
+No modifications were made to FFmpeg.
