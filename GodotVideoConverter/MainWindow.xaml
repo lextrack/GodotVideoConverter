@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:GodotVideoConverter.ViewModels"
         xmlns:local="clr-namespace:GodotVideoConverter"
-        Title="Godot Video Converter" Height="800" Width="1100" WindowStartupLocation="CenterScreen"
+        Title="Godot Video Converter" Height="850" Width="1280" WindowStartupLocation="CenterScreen"
         AllowDrop="True"
         DragOver="Window_DragOver"
         Drop="Window_Drop"
@@ -20,411 +20,651 @@
         <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <local:GenerateAtlasButtonTextConverter x:Key="GenerateAtlasButtonTextConverter"/>
         <local:Converter x:Key="Converter"/>
+        <local:DynamicActionButtonTextConverter x:Key="DynamicActionButtonTextConverter"/>
 
+        <!-- Section Header Style -->
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Margin" Value="0,8,0,3"/>
-            <Setter Property="Foreground" Value="{DynamicResource SystemControlForegroundBaseHighBrush}"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
         </Style>
 
-        <Style x:Key="ButtonStyle" TargetType="Button">
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="MinWidth" Value="70"/>
+        <!-- Info Border Style -->
+        <Style x:Key="InfoBorderStyle" TargetType="Border">
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="#005FB8"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+
+        <!-- Primary Action Button Style (Convert) -->
+        <Style x:Key="PrimaryActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#4A90E2"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#003087"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#0078D4"/>
-                                <Setter Property="BorderBrush" Value="#005FB8"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#F0F0F0"/>
-                                <Setter Property="Foreground" Value="#A0A0A0"/>
-                                <Setter Property="BorderBrush" Value="#D0D0D0"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,8"/>
-        </Style>
-
-        <Style x:Key="AlternativeButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,8"/>
-        </Style>
-
-        <Style x:Key="OrangeTipBorderStyle" TargetType="Border">
-            <Setter Property="BorderBrush" Value="Orange"/>
-            <Setter Property="BorderThickness" Value="2"/>
-        </Style>
-
-        <Style x:Key="BlueBorderStyle" TargetType="Border">
-            <Setter Property="BorderBrush" Value="#0078D4"/>
-            <Setter Property="BorderThickness" Value="2"/>
-        </Style>
-
-        <Style x:Key="BlueButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Background" Value="#FF3685B7"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#2F6396"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#66A3FF"/>
-                                <Setter Property="BorderBrush" Value="#4A90E2"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#F0F0F0"/>
-                                <Setter Property="Foreground" Value="#A0A0A0"/>
-                                <Setter Property="BorderBrush" Value="#D0D0D0"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="GreenButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Background" Value="#107C10"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#0A5F0A"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#2E8B2E"/>
-                                <Setter Property="BorderBrush" Value="#107C10"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#F0F0F0"/>
-                                <Setter Property="Foreground" Value="#A0A0A0"/>
-                                <Setter Property="BorderBrush" Value="#D0D0D0"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="FileListBoxStyle" TargetType="ListBox">
-            <Setter Property="Background" Value="#F5F5F5"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#66A3FF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A7BC8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#CCCCCC"/>
+                                <Setter Property="Foreground" Value="#888888"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <Style x:Key="FileListBoxItemStyle" TargetType="ListBoxItem">
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="Margin" Value="1"/>
-            <Setter Property="FontSize" Value="11"/>
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#E3F2FD"/>
-                    <Setter Property="Foreground" Value="Black"/>
-                </Trigger>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F0F0F0"/>
-                </Trigger>
-            </Style.Triggers>
+        <!-- Secondary Action Button Style (Generate Atlas) -->
+        <Style x:Key="SecondaryActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#5CA85C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="4"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#78E878"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#4A9D4A"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="border" Property="Background" Value="#CCCCCC"/>
+                                <Setter Property="Foreground" Value="#888888"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
-    <Grid Margin="15">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Main Content: Two Columns -->
-        <Grid Grid.Row="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="10"/>
-                <ColumnDefinition Width="1*"/>
-            </Grid.ColumnDefinitions>
+        <!-- Main TabControl -->
+        <TabControl Grid.Row="0" SelectedIndex="{Binding SelectedTabIndex}">
+            <TabControl.IsEnabled>
+                <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                    <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                    <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                </MultiBinding>
+            </TabControl.IsEnabled>
+            <!-- TAB 1: VIDEO CONVERSION -->
+            <TabItem Header="🎬 Video Conversion">
+                <Grid Margin="15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="420"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-            <!-- LEFT COLUMN: Settings -->
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <!-- Conversion Settings -->
-                    <GroupBox Header="Conversion Settings" Padding="8" Margin="0,0,0,8">
+                    <!-- LEFT: Settings -->
+                    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,15,0">
                         <StackPanel>
-                            <TextBlock Text="Format:" Style="{StaticResource SectionHeaderStyle}"/>
+                            <!-- Output Folder -->
+                            <TextBlock Text="Output Folder" Style="{StaticResource SectionHeaderStyle}"/>
+                            <Grid Margin="0,0,0,15">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding OutputFolder}"
+                                         IsReadOnly="True"
+                                         VerticalAlignment="Center"
+                                         Padding="8,6"
+                                         Margin="0,0,8,0"/>
+                                <Button Grid.Column="1"
+                                        Content="Browse..."
+                                        Command="{Binding BrowseOutputFolderCommand}"
+                                        Padding="12,6">
+                                        <Button.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                                <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                                <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                            </MultiBinding>
+                                        </Button.IsEnabled>
+                                    </Button>
+                            </Grid>
+
+                            <!-- Format -->
+                            <TextBlock Text="Format" Style="{StaticResource SectionHeaderStyle}"/>
                             <ComboBox ItemsSource="{Binding Formats}"
                                       SelectedItem="{Binding SelectedFormat}"
-                                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                      Margin="0,0,0,8"/>
-
-                            <TextBlock Text="Quality:" Style="{StaticResource SectionHeaderStyle}"/>
-                            <ComboBox ItemsSource="{Binding Qualities}"
-                                      SelectedItem="{Binding SelectedQuality}"
-                                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                      Margin="0,0,0,8"/>
-
-                            <TextBlock Text="Resolution:" Style="{StaticResource SectionHeaderStyle}"/>
-                            <ComboBox ItemsSource="{Binding Resolutions}"
-                                      SelectedItem="{Binding SelectedResolution}"
-                                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                      Margin="0,0,0,8"/>
-
-                            <TextBlock Text="OGV Mode:" Style="{StaticResource SectionHeaderStyle}"/>
-                            <ComboBox ItemsSource="{Binding OgvModes}"
-                                      SelectedItem="{Binding SelectedOgvMode}"
-                                      Margin="0,0,0,8">
+                                      Padding="8,6"
+                                      Margin="0,0,0,15">
                                 <ComboBox.IsEnabled>
                                     <MultiBinding Converter="{StaticResource BooleanAndConverter}">
-                                        <Binding Path="IsOgvModeEnabled"/>
                                         <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                        <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
                                     </MultiBinding>
                                 </ComboBox.IsEnabled>
                             </ComboBox>
 
-                            <Grid Margin="0,5,0,0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                            <!-- Quality -->
+                            <TextBlock Text="Quality" Style="{StaticResource SectionHeaderStyle}"/>
+                            <ComboBox ItemsSource="{Binding Qualities}"
+                                      SelectedItem="{Binding SelectedQuality}"
+                                      Padding="8,6"
+                                      Margin="0,0,0,15">
+                                <ComboBox.IsEnabled>
+                                    <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                        <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                        <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                    </MultiBinding>
+                                </ComboBox.IsEnabled>
+                            </ComboBox>
 
-                                <CheckBox Grid.Column="0"
-                                          Content="Keep Audio"
-                                          IsChecked="{Binding KeepAudio}"
-                                          IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                          VerticalAlignment="Center"
-                                          Margin="0,0,15,0"/>
+                            <!-- Resolution -->
+                            <TextBlock Text="Resolution" Style="{StaticResource SectionHeaderStyle}"/>
+                            <ComboBox ItemsSource="{Binding Resolutions}"
+                                      SelectedItem="{Binding SelectedResolution}"
+                                      Padding="8,6"
+                                      Margin="0,0,0,15">
+                                <ComboBox.IsEnabled>
+                                    <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                        <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                        <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                    </MultiBinding>
+                                </ComboBox.IsEnabled>
+                            </ComboBox>
 
-                                <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                    <TextBlock Text="FPS:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <!-- OGV Mode -->
+                            <TextBlock Text="OGV Mode" Style="{StaticResource SectionHeaderStyle}"/>
+                            <ComboBox ItemsSource="{Binding OgvModes}"
+                                      SelectedItem="{Binding SelectedOgvMode}"
+                                      Padding="8,6"
+                                      Margin="0,0,0,15">
+                                <ComboBox.IsEnabled>
+                                    <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                        <Binding Path="IsOgvModeEnabled"/>
+                                        <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                        <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                    </MultiBinding>
+                                </ComboBox.IsEnabled>
+                            </ComboBox>
+
+                            <!-- Advanced Options -->
+                            <Expander Header="⚙ Advanced Options" IsExpanded="False" Margin="0,0,0,10">
+                                <StackPanel Margin="0,10,0,0">
+                                    <CheckBox Content="Keep Audio"
+                                              IsChecked="{Binding KeepAudio}"
+                                              Margin="0,0,0,12">
+                                        <CheckBox.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                                <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                                <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                            </MultiBinding>
+                                        </CheckBox.IsEnabled>
+                                    </CheckBox>
+
+                                    <TextBlock Text="FPS (Frame Rate)" Style="{StaticResource SectionHeaderStyle}"/>
                                     <TextBox Text="{Binding Fps}"
-                                             Width="80"
-                                             IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                             VerticalAlignment="Center"
-                                             MaxLength="2"
-                                             PreviewTextInput="NumbersOnly_PreviewTextInput"/>
+                                             Padding="8,6"
+                                             MaxLength="3"
+                                             PreviewTextInput="NumbersOnly_PreviewTextInput"
+                                             ToolTip="Leave empty to keep original FPS">
+                                        <TextBox.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                                <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                                <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                            </MultiBinding>
+                                        </TextBox.IsEnabled>
+                                    </TextBox>
                                 </StackPanel>
-                            </Grid>
+                            </Expander>
                         </StackPanel>
-                    </GroupBox>
+                    </ScrollViewer>
 
-                    <!-- Sprite Atlas Settings -->
-                    <GroupBox Header="Sprite Atlas" Padding="8" Margin="0,0,0,0">
-                        <StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
+                    <!-- RIGHT: Files and Info -->
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Column="0" Text="Frames:" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                <TextBox Grid.Column="1"
-                                         Text="{Binding AtlasFps}"
-                                         MaxLength="2"
-                                         PreviewTextInput="NumbersOnly_PreviewTextInput"
-                                         IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                         ToolTip="Recomended: between 1 and 30 frames"
-                                         Margin="0,0,0,8"/>
-                            </Grid>
-
-                            <TextBlock Text="Layout:" Style="{StaticResource SectionHeaderStyle}"/>
-                            <ComboBox ItemsSource="{Binding AtlasModes}"
-                                      SelectedItem="{Binding SelectedAtlasMode}"
-                                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                      Margin="0,0,0,8"/>
-
-                            <TextBlock Text="Resolution:" Style="{StaticResource SectionHeaderStyle}"/>
-                            <ComboBox ItemsSource="{Binding AtlasResolutions}"
-                                      SelectedItem="{Binding SelectedAtlasResolution}"
-                                      IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                      ToolTip="Medium resolution recommended"/>
-                        </StackPanel>
-                    </GroupBox>
-                </StackPanel>
-            </ScrollViewer>
-
-            <!-- RIGHT COLUMN: Files and Info -->
-            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-                <StackPanel>
-                    <!-- Output Folder -->
-                    <GroupBox Header="Output Folder" Padding="8" Margin="0,0,0,8">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0"
-                                     Text="{Binding OutputFolder}"
-                                     IsReadOnly="True"
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,8,0"/>
-                            <Button Grid.Column="1"
-                                    Content="Browse..."
-                                    Command="{Binding BrowseOutputFolderCommand}"
-                                    IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                    Style="{StaticResource ButtonStyle}"/>
-                        </Grid>
-                    </GroupBox>
-
-                    <!-- Files -->
-                    <GroupBox Header="Files" Padding="8" Margin="0,0,0,8">
-                        <Grid>
-                            <StackPanel>
-                                <Border BorderThickness="1" CornerRadius="3" BorderBrush="#CCCCCC">
-                                    <ListBox ItemsSource="{Binding InputFiles}"
-                                             Height="120"
-                                             IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                                             SelectedIndex="{Binding SelectedFileIndex}"
-                                             Style="{StaticResource FileListBoxStyle}"
-                                             ItemContainerStyle="{StaticResource FileListBoxItemStyle}"
-                                             KeyDown="FileListBox_KeyDown"/>
+                        <!-- Files Section -->
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Text="Files" Style="{StaticResource SectionHeaderStyle}"/>
+                            <Grid Height="180" Margin="0,0,0,15">
+                                <Border BorderThickness="1" CornerRadius="4">
+                                    <Grid>
+                                        <ListBox ItemsSource="{Binding InputFiles}"
+                                                 SelectedIndex="{Binding SelectedFileIndex}"
+                                                 KeyDown="FileListBox_KeyDown"
+                                                 BorderThickness="0">
+                                            <ListBox.IsEnabled>
+                                                <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                                    <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                                    <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                                </MultiBinding>
+                                            </ListBox.IsEnabled>
+                                            <ListBox.ItemContainerStyle>
+                                                <Style TargetType="ListBoxItem">
+                                                    <Setter Property="Padding" Value="10,6"/>
+                                                </Style>
+                                            </ListBox.ItemContainerStyle>
+                                        </ListBox>
+                                        <TextBlock Text="📁 Drag video files here or use the file dialog"
+                                                   FontStyle="Normal"
+                                                   Opacity="0.6"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   IsHitTestVisible="False">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding InputFiles.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Grid>
                                 </Border>
-                                <TextBlock Text="Drag files here"
-                                           FontStyle="Italic"
-                                           FontSize="11"
-                                           Margin="0,3,0,0"
-                                           HorizontalAlignment="Center"/>
+                                <Border Background="#CC000000"
+                                        Visibility="{Binding IsLoadingFiles, Converter={StaticResource BoolToVisibilityConverter}}"
+                                        CornerRadius="4">
+                                    <TextBlock Text="⏳ Loading files..."
+                                               Foreground="White"
+                                               FontSize="16"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+
+                        <!-- Info Section -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <!-- Video Information -->
+                                <Border Style="{StaticResource InfoBorderStyle}"
+                                        Visibility="{Binding VideoInfo, Converter={StaticResource Converter}}">
+                                    <StackPanel>
+                                        <TextBlock Text="📹 Video Information"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,0,0,8"/>
+                                        <TextBlock Text="{Binding VideoInfo}"
+                                                   TextWrapping="Wrap"
+                                                   FontFamily="Consolas"
+                                                   FontSize="11"
+                                                   Opacity="0.8"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Godot Recommendations -->
+                                <Border Style="{StaticResource InfoBorderStyle}"
+                                        Visibility="{Binding Recommendations, Converter={StaticResource Converter}}">
+                                    <StackPanel>
+                                        <TextBlock Text="💡 Godot Recommendations"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,0,0,8"/>
+                                        <TextBlock Text="{Binding Recommendations}"
+                                                   TextWrapping="Wrap"
+                                                   FontSize="11"
+                                                   Opacity="0.8"/>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                            <Border Background="#B2616060"
-                                    Visibility="{Binding IsLoadingFiles, Converter={StaticResource BoolToVisibilityConverter}}"
-                                    HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                                <TextBlock Text="Loading files..."
-                                           Foreground="IndianRed"
-                                           FontSize="18"
-                                           FontWeight="Bold"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: SPRITE ATLAS -->
+            <TabItem Header="🎨 Sprite Atlas">
+                <Grid Margin="15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="420"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- LEFT: Atlas Settings -->
+                    <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                        <TextBlock Text="Atlas Configuration"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,20"/>
+
+                        <!-- Frames per Second -->
+                        <TextBlock Text="Frames per Second" Style="{StaticResource SectionHeaderStyle}"/>
+                        <TextBox Text="{Binding AtlasFps}"
+                                 MaxLength="2"
+                                 Padding="8,6"
+                                 PreviewTextInput="NumbersOnly_PreviewTextInput"
+                                 ToolTip="Recommended: between 1 and 30 frames"
+                                 Margin="0,0,0,15">
+                            <TextBox.IsEnabled>
+                                <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                    <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                    <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                </MultiBinding>
+                            </TextBox.IsEnabled>
+                        </TextBox>
+
+                        <!-- Layout Mode -->
+                        <TextBlock Text="Layout Mode" Style="{StaticResource SectionHeaderStyle}"/>
+                        <ComboBox ItemsSource="{Binding AtlasModes}"
+                                  SelectedItem="{Binding SelectedAtlasMode}"
+                                  Padding="8,6"
+                                  Margin="0,0,0,15">
+                            <ComboBox.IsEnabled>
+                                <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                    <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                    <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                </MultiBinding>
+                            </ComboBox.IsEnabled>
+                        </ComboBox>
+
+                        <!-- Frame Resolution -->
+                        <TextBlock Text="Frame Resolution" Style="{StaticResource SectionHeaderStyle}"/>
+                        <ComboBox ItemsSource="{Binding AtlasResolutions}"
+                                  SelectedItem="{Binding SelectedAtlasResolution}"
+                                  Padding="8,6"
+                                  ToolTip="Medium resolution recommended for most cases"
+                                  Margin="0,0,0,20">
+                            <ComboBox.IsEnabled>
+                                <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                    <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                    <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                </MultiBinding>
+                            </ComboBox.IsEnabled>
+                        </ComboBox>
+
+                        <!-- Info Box -->
+                        <Border Style="{StaticResource InfoBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="ℹ About Sprite Atlas"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap" FontSize="11" Opacity="0.8">
+                                    <Run Text="Sprite Atlas combines all video frames into a single image. Perfect for:"/>
+                                    <LineBreak/>
+                                    <LineBreak/>
+                                    <Run Text="• Animated sprites in Godot"/>
+                                    <LineBreak/>
+                                    <Run Text="• 2D game animations"/>
+                                    <LineBreak/>
+                                    <Run Text="• Frame-by-frame playback"/>
+                                    <LineBreak/>
+                                    <LineBreak/>
+                                    <Run Text="⚠ Large videos may take time to process."/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- RIGHT: Preview/Files -->
+                    <Grid Grid.Column="1">
+                        <StackPanel>
+                            <TextBlock Text="Source Files" Style="{StaticResource SectionHeaderStyle}"/>
+                            <Border BorderThickness="1"
+                                    CornerRadius="4"
+                                    Height="400"
+                                    Margin="0,0,0,15">
+                                <Grid>
+                                    <ListBox ItemsSource="{Binding InputFiles}"
+                                             BorderThickness="0">
+                                        <ListBox.IsEnabled>
+                                            <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                                <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                                <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                                            </MultiBinding>
+                                        </ListBox.IsEnabled>
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Padding" Value="10,6"/>
+                                            </Style>
+                                        </ListBox.ItemContainerStyle>
+                                    </ListBox>
+                                    <TextBlock Text="📁 No files loaded. Switch to Video Conversion tab to add files."
+                                               FontStyle="Normal"
+                                               Opacity="0.6"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               IsHitTestVisible="False"
+                                               TextWrapping="Wrap"
+                                               TextAlignment="Center"
+                                               Margin="20">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding InputFiles.Count}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
                             </Border>
-                        </Grid>
-                    </GroupBox>
 
-                    <!-- Video Information -->
-                    <Border BorderThickness="1"
-                            CornerRadius="3"
-                            Margin="0,0,0,8"
-                            Padding="6"
-                            Visibility="{Binding VideoInfo, Converter={StaticResource Converter}}"
-                            Style="{StaticResource BlueBorderStyle}">
-                        <StackPanel>
-                            <TextBlock Text="📹 Video Information" FontWeight="Bold" FontSize="11" Margin="0,0,0,4"/>
-                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
-                                <TextBlock Text="{Binding VideoInfo}"
-                                           TextWrapping="Wrap"
-                                           FontFamily="Consolas"
-                                           FontSize="10"/>
-                            </ScrollViewer>
+                            <!-- Note: Use the main action button at the bottom -->
                         </StackPanel>
-                    </Border>
+                    </Grid>
+                </Grid>
+            </TabItem>
 
-                    <!-- Recommendations -->
-                    <Border BorderThickness="1"
-                            CornerRadius="3"
-                            Padding="6"
-                            Margin="0,0,0,0"
-                            Visibility="{Binding Recommendations, Converter={StaticResource Converter}}"
-                            Style="{StaticResource OrangeTipBorderStyle}">
-                        <StackPanel>
-                            <TextBlock Text="💡 Godot Recommendations" FontWeight="Bold" FontSize="11" Margin="0,0,0,4"/>
-                            <ScrollViewer MaxHeight="221" VerticalScrollBarVisibility="Auto">
-                                <TextBlock Text="{Binding Recommendations}"
-                                           TextWrapping="Wrap"
-                                           FontSize="10"/>
-                            </ScrollViewer>
-                        </StackPanel>
-                    </Border>
+            <!-- TAB 3: ABOUT -->
+            <TabItem Header="ℹ About">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="30" MaxWidth="600" HorizontalAlignment="Center">
+                        <TextBlock Text="Godot Video Converter"
+                                   FontSize="24"
+                                   FontWeight="Bold"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Basic video conversion tool for Godot Engine"
+                                   FontSize="13"
+                                   HorizontalAlignment="Center"
+                                   Opacity="0.6"
+                                   Margin="0,0,0,30"/>
+
+                        <Border Style="{StaticResource InfoBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Features" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,10"/>
+                                <TextBlock TextWrapping="Wrap" Opacity="0.8">
+                                    <Run Text="• Convert videos to OGV, MP4, WebM, and GIF formats"/>
+                                    <LineBreak/>
+                                    <Run Text="• Generate sprite atlases for 2D animations"/>
+                                    <LineBreak/>
+                                    <Run Text="• Multiple quality presets for each format"/>
+                                    <LineBreak/>
+                                    <Run Text="• Special OGV modes optimized for Godot"/>
+                                    <LineBreak/>
+                                    <Run Text="• Batch conversion support"/>
+                                    <LineBreak/>
+                                    <Run Text="• Real-time video information and recommendations"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource InfoBorderStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Format Guide" FontWeight="SemiBold" FontSize="14" Margin="0,0,0,10"/>
+                                <TextBlock TextWrapping="Wrap" Opacity="0.8">
+                                    <Run Text="OGV (Theora): Default format for Godot, good compatibility"/>
+                                    <LineBreak/><LineBreak/>
+                                    <Run Text="MP4 (H.264): Best quality and compression, widely supported"/>
+                                    <LineBreak/><LineBreak/>
+                                    <Run Text="WebM (VP9): Open format, excellent for web"/>
+                                    <LineBreak/><LineBreak/>
+                                    <Run Text="GIF: Simple animations, universal compatibility"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <Border BorderThickness="1" CornerRadius="4" Padding="15">
+                            <StackPanel>
+                                <TextBlock Text="System Information" FontWeight="SemiBold" Margin="0,0,0,10"/>
+                                <TextBlock Opacity="0.7">
+                                    <Run Text="Godot Video Converter: 1.0.0.9"/>
+                                    <LineBreak/>
+                                    <Run Text="FFmpeg: 7.1.1"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- BOTTOM: Progress and Buttons (Global) -->
+        <Border Grid.Row="1" BorderThickness="0,1,0,0" Padding="15">
+            <StackPanel>
+                <!-- Progress Bar -->
+                <ProgressBar Minimum="0"
+                             Maximum="100"
+                             Value="{Binding Progress}"
+                             Height="22"
+                             Margin="0,0,0,10"/>
+
+                <!-- Status Message -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           Margin="0,0,0,12"
+                           TextWrapping="Wrap"
+                           HorizontalAlignment="Center"/>
+
+                <!-- Main Action Buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Command="{Binding ExecutePrimaryActionCommand}"
+                            Height="40"
+                            MinWidth="160"
+                            FontSize="14"
+                            Margin="0,0,10,0"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="20,8"
+                            FontWeight="SemiBold"
+                            Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#4A90E2"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="border"
+                                                    Background="{TemplateBinding Background}"
+                                                    CornerRadius="4"
+                                                    BorderThickness="0">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedTabIndex}" Value="0"/>
+                                                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="border" Property="Background" Value="#66A3FF"/>
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedTabIndex}" Value="0"/>
+                                                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsPressed}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="border" Property="Background" Value="#3A7BC8"/>
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedTabIndex}" Value="1"/>
+                                                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="border" Property="Background" Value="#78E878"/>
+                                                </MultiDataTrigger>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedTabIndex}" Value="1"/>
+                                                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsPressed}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter TargetName="border" Property="Background" Value="#4A9D4A"/>
+                                                </MultiDataTrigger>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter TargetName="border" Property="Background" Value="#CCCCCC"/>
+                                                    <Setter Property="Foreground" Value="#888888"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SelectedTabIndex}" Value="1">
+                                        <Setter Property="Background" Value="#5AA85C"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <Button.Content>
+                            <MultiBinding Converter="{StaticResource DynamicActionButtonTextConverter}">
+                                <Binding Path="SelectedTabIndex"/>
+                                <Binding Path="IsConverting"/>
+                                <Binding Path="IsGeneratingAtlas"/>
+                            </MultiBinding>
+                        </Button.Content>
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
+
+                    <Button Content="Clear List"
+                            Command="{Binding ClearListCommand}"
+                            Height="36"
+                            Padding="16,8"
+                            MinWidth="120"
+                            Margin="10,0,10,0">
+                        <Button.IsEnabled>
+                            <MultiBinding Converter="{StaticResource BooleanAndConverter}">
+                                <Binding Path="IsConverting" Converter="{StaticResource BoolToInverseConverter}"/>
+                                <Binding Path="IsGeneratingAtlas" Converter="{StaticResource BoolToInverseConverter}"/>
+                            </MultiBinding>
+                        </Button.IsEnabled>
+                    </Button>
+
+                    <Button Content="Open Output"
+                            Command="{Binding OpenOutputFolderCommand}"
+                            Height="36"
+                            Padding="16,8"
+                            MinWidth="120"
+                            Margin="10,0,0,0"/>
                 </StackPanel>
-            </ScrollViewer>
-        </Grid>
-
-        <!-- BOTTOM: Progress and Buttons -->
-        <StackPanel Grid.Row="1" Margin="0,10,0,0">
-            <ProgressBar Minimum="0"
-                         Maximum="100"
-                         Value="{Binding Progress}"
-                         Height="18"
-                         BorderThickness="1"
-                         Margin="0,0,0,8"/>
-            <TextBlock Text="{Binding StatusMessage}"
-                       Margin="0,0,0,10"
-                       TextWrapping="Wrap"
-                       HorizontalAlignment="Center"
-                       FontSize="13"/>
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
-                <Button Content="{Binding IsConverting, Converter={StaticResource ConvertButtonTextConverter}}"
-                        Command="{Binding ConvertCommand}"
-                        IsEnabled="{Binding IsGeneratingAtlas, Converter={StaticResource BoolToInverseConverter}}"
-                        Style="{StaticResource BlueButtonStyle}"
-                        Height="32"
-                        FontSize="12"
-                        MinWidth="120"
-                        Margin="0,0,8,0"/>
-
-                <Button Content="{Binding IsGeneratingAtlas, Converter={StaticResource GenerateAtlasButtonTextConverter}}"
-                        Command="{Binding GenerateAtlasCommand}"
-                        IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                        Style="{StaticResource GreenButtonStyle}"
-                        Height="32"
-                        FontSize="12"
-                        MinWidth="140"
-                        Margin="8,0,0,0"
-                        ToolTip="Don't panic if the app doesn't response during the generation"/>
             </StackPanel>
-
-            <UniformGrid Rows="1" Columns="3">
-                <Button Content="Clear List"
-                        Command="{Binding ClearListCommand}"
-                        IsEnabled="{Binding IsConverting, Converter={StaticResource BoolToInverseConverter}}"
-                        Style="{StaticResource ButtonStyle}"
-                        Height="30"
-                        FontSize="11"
-                        Margin="0,0,4,0"/>
-                <Button Content="Open Output Folder"
-                        Command="{Binding OpenOutputFolderCommand}"
-                        Style="{StaticResource ButtonStyle}"
-                        Height="30"
-                        FontSize="11"
-                        Margin="4,0"/>
-                <Button Content="About"
-                        Click="AboutButton_Click"
-                        Style="{StaticResource ButtonStyle}"
-                        Height="30"
-                        FontSize="11"
-                        Margin="4,0,0,0"/>
-            </UniformGrid>
-        </StackPanel>
+        </Border>
     </Grid>
 </Window>

@@ -260,17 +260,29 @@ namespace GodotVideoConverter.ViewModels
                     break;
 
                 default: // OGV
-                    string baseTheoraArgs = SelectedQuality switch
-                    {
-                        "Ultra" => "-c:v libtheora -q:v 8 -qmin 6 -qmax 10 -threads 0",
-                        "High" => "-c:v libtheora -q:v 7 -qmin 4 -qmax 9 -threads 0",
-                        "Balanced" => "-c:v libtheora -q:v 6 -qmin 3 -qmax 8 -threads 0",
-                        "Optimized" => "-c:v libtheora -q:v 5 -qmin 2 -qmax 7 -threads 0",
-                        "Tiny" => "-c:v libtheora -q:v 3 -qmin 1 -qmax 5 -threads 0",
-                        _ => "-c:v libtheora -q:v 6 -qmin 3 -qmax 8 -threads 0"
-                    };
+                    // Check if using CBR mode (Controlled Bitrate or Mobile Optimized)
+                    bool useCBR = IsOgvModeEnabled && (SelectedOgvMode == "Controlled Bitrate" || SelectedOgvMode == "Mobile Optimized");
 
-                    codecVideo = baseTheoraArgs;
+                    if (useCBR)
+                    {
+                        // For CBR modes, don't use -q:v (quality), bitrate is set in GetOgvModeArguments()
+                        codecVideo = "-c:v libtheora -threads 0";
+                    }
+                    else
+                    {
+                        // For VBR modes, use quality settings
+                        string baseTheoraArgs = SelectedQuality switch
+                        {
+                            "Ultra" => "-c:v libtheora -q:v 8 -qmin 6 -qmax 10 -threads 0",
+                            "High" => "-c:v libtheora -q:v 7 -qmin 4 -qmax 9 -threads 0",
+                            "Balanced" => "-c:v libtheora -q:v 6 -qmin 3 -qmax 8 -threads 0",
+                            "Optimized" => "-c:v libtheora -q:v 5 -qmin 2 -qmax 7 -threads 0",
+                            "Tiny" => "-c:v libtheora -q:v 3 -qmin 1 -qmax 5 -threads 0",
+                            _ => "-c:v libtheora -q:v 6 -qmin 3 -qmax 8 -threads 0"
+                        };
+                        codecVideo = baseTheoraArgs;
+                    }
+
                     codecAudio = KeepAudio ? "-c:a libvorbis -q:a 3 -ar 44100 -ac 2" : "-an";
                     additionalArgs = IsOgvModeEnabled ? GetOgvModeArguments() : "-pix_fmt yuv420p -g 30 -keyint_min 30 -threads 0";
                     break;
@@ -283,11 +295,11 @@ namespace GodotVideoConverter.ViewModels
         {
             return SelectedOgvMode switch
             {
-                "Constant FPS (CFR)" => "-pix_fmt yuv420p -g 15 -keyint_min 15 -vsync cfr",
-                "Optimized for weak hardware" => "-pix_fmt yuv420p -g 60 -keyint_min 30 -bf 0 -threads 4 -slices 4",
+                "Constant FPS (CFR)" => "-pix_fmt yuv420p -g 15 -keyint_min 15 -fps_mode cfr",
+                "Optimized for weak hardware" => "-pix_fmt yuv420p -g 60 -keyint_min 30 -threads 4",
                 "Ideal Loop" => "-pix_fmt yuv420p -g 1 -keyint_min 1 -avoid_negative_ts make_zero -fflags +genpts",
-                "Controlled Bitrate" => "-pix_fmt yuv420p -g 15 -keyint_min 5 -bufsize 2000k -maxrate 1500k",
-                "Mobile Optimized" => "-pix_fmt yuv420p -g 60 -keyint_min 30 -bf 0 -maxrate 800k -bufsize 1600k",
+                "Controlled Bitrate" => "-pix_fmt yuv420p -g 15 -keyint_min 5 -b:v 1200k -maxrate 1500k -bufsize 2000k",
+                "Mobile Optimized" => "-pix_fmt yuv420p -g 60 -keyint_min 30 -b:v 600k -maxrate 800k -bufsize 1600k",
                 _ => "-pix_fmt yuv420p -g 30 -keyint_min 30"
             };
         }

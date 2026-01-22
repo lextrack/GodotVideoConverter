@@ -437,5 +437,18 @@ namespace GodotVideoConverter.ViewModels
                 IsConverting = false;
             }
         }
+        [RelayCommand]
+        private async Task ExecutePrimaryActionAsync()
+        {
+            // Tab 0 = Video Conversion, Tab 1 = Sprite Atlas
+            if (SelectedTabIndex == 1)
+            {
+                await GenerateAtlasAsync();
+            }
+            else
+            {
+                await ConvertAsync();
+            }
+        }
     }
 }

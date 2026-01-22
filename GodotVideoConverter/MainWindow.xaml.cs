@@ -1,5 +1,4 @@
 ﻿using GodotVideoConverter.ViewModels;
-using GodotVideoConverter.Views;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
@@ -133,13 +132,6 @@ namespace GodotVideoConverter
             {
                 Debug.WriteLine($"Error during process cleanup: {ex.Message}");
             }
-        }
-
-        private void AboutButton_Click(object sender, RoutedEventArgs e)
-        {
-            var aboutWindow = new AboutWindow();
-            aboutWindow.Owner = this;
-            aboutWindow.ShowDialog();
         }
     }
 }

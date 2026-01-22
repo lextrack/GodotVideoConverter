@@ -57,7 +57,7 @@ namespace GodotVideoConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return value is bool b && b ? "Converting..." : "Convert";
+            return value is bool b && b ? "Converting..." : "Convert Video";
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
@@ -89,6 +89,32 @@ namespace GodotVideoConverter
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public class DynamicActionButtonTextConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length != 3) return "Action";
+
+            int tabIndex = values[0] is int idx ? idx : 0;
+            bool isConverting = values[1] is bool conv && conv;
+            bool isGenerating = values[2] is bool gen && gen;
+
+            if (tabIndex == 1)
+            {
+                return isGenerating ? "Generating..." : "Generate Atlas";
+            }
+            else
+            {
+                return isConverting ? "Converting..." : "Convert Video";
+            }
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
             throw new NotImplementedException();
         }
