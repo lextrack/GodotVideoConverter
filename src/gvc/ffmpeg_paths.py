@@ -43,7 +43,6 @@ def _candidate_dirs() -> list[Path]:
         ]
     )
 
-    # Remove duplicates preserving order
     seen: set[str] = set()
     unique: list[Path] = []
     for c in candidates:

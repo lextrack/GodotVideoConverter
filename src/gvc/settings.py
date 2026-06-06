@@ -20,7 +20,6 @@ class AppSettings:
     atlas_fps: int = 5
     selected_atlas_mode: str = "grid"
     selected_atlas_resolution: str = "Medium"
-    selected_atlas_backend: str = "ffmpeg"
 
 
 def _config_dir() -> Path:

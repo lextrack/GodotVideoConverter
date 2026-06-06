@@ -45,7 +45,7 @@ from gvc.atlas import generate_sprite_atlas
 from gvc.convert import ConvertOptions, ENGINE_PROFILES, convert_video, ogv_modes_for_profile
 from gvc.ffmpeg_paths import FFmpegNotFoundError, resolve_ffmpeg_and_ffprobe
 from gvc import __version__
-from gvc.i18n import LANGUAGE_LABELS, language_label_to_code, ui_text
+from gvc.i18n import LANGUAGE_LABELS, language_label_to_code, translate_runtime_error, ui_text
 from gvc.probe import probe_video
 from gvc.settings import AppSettings, load_settings, save_settings
 
@@ -117,7 +117,7 @@ class Worker(QObject):
             if self._cancel_event.is_set() or "cancel" in str(exc).lower():
                 self.status.emit({"key": "cancelled", "kwargs": {}})
             else:
-                self.status.emit({"text": f"Error: {exc}"})
+                self.status.emit({"error": str(exc)})
             self.done.emit(False)
 
 
@@ -156,6 +156,7 @@ class MainWindow(QMainWindow):
         self._status_kwargs: dict[str, object] = {}
         self._status_text_override: str | None = None
         self._progress_started = False
+        self._progress_error_state = False
         self._close_after_cancel = False
         self._output_validation_timer = QTimer(self)
         self._output_validation_timer.setInterval(4000)
@@ -341,23 +342,16 @@ class MainWindow(QMainWindow):
         self.atlas_fps.setRange(1, 30)
         self.atlas_fps.setValue(5)
         self.atlas_mode = QComboBox()
-        self.atlas_mode.addItems(["grid", "horizontal", "vertical"])
         self.atlas_res = QComboBox()
-        self.atlas_res.addItems(["Low", "Medium", "High"])
-        self.atlas_backend = QComboBox()
-        self.atlas_backend.addItems(["ffmpeg", "opencv"])
         self.frames_label = QLabel("Frames")
         self.mode_label = QLabel("Mode")
         self.atlas_resolution_label = QLabel("Resolution")
-        self.backend_label = QLabel("Backend")
         arow1.addWidget(self.frames_label)
         arow1.addWidget(self.atlas_fps)
         arow1.addWidget(self.mode_label)
         arow1.addWidget(self.atlas_mode)
         arow1.addWidget(self.atlas_resolution_label)
         arow1.addWidget(self.atlas_res)
-        arow1.addWidget(self.backend_label)
-        arow1.addWidget(self.atlas_backend)
         arow1.addStretch()
         atlas_layout.addLayout(arow1)
 
@@ -377,11 +371,11 @@ class MainWindow(QMainWindow):
         rec_group_layout = QVBoxLayout(self.rec_group)
         self.summary_text = QTextEdit()
         self.summary_text.setReadOnly(True)
-        self.summary_text.setMinimumHeight(240)
+        self.summary_text.setMinimumHeight(320)
         self.summary_text.setAcceptRichText(True)
         self.guidance_text = QTextEdit()
         self.guidance_text.setReadOnly(True)
-        self.guidance_text.setMinimumHeight(370)
+        self.guidance_text.setMinimumHeight(290)
         self.guidance_text.setAcceptRichText(True)
         rec_group_layout.addWidget(self.summary_text)
         rec_group_layout.addWidget(self.guidance_text, 1)
@@ -425,7 +419,6 @@ class MainWindow(QMainWindow):
         self.atlas_fps.valueChanged.connect(self.save_ui_settings)
         self.atlas_mode.currentTextChanged.connect(self.save_ui_settings)
         self.atlas_res.currentTextChanged.connect(self.save_ui_settings)
-        self.atlas_backend.currentTextChanged.connect(self.save_ui_settings)
 
         self._load_ui_settings()
         self._ensure_output_directory_silent()
@@ -440,6 +433,8 @@ class MainWindow(QMainWindow):
             self._set_status_key("done")
         elif self._cancel_event and self._cancel_event.is_set():
             self._set_status_key("cancelled")
+        else:
+            self._freeze_progress_bar_on_error()
 
         if self._thread:
             self._thread.quit()
@@ -497,19 +492,48 @@ class MainWindow(QMainWindow):
         if isinstance(payload, dict) and "key" in payload:
             self._set_status_key(str(payload["key"]), **dict(payload.get("kwargs") or {}))
             return
+        if isinstance(payload, dict) and "error" in payload:
+            raw = str(payload["error"])
+            translated = translate_runtime_error(raw, self.language.currentText())
+            self._set_status_text(self._tr("error_prefix", message=translated))
+            return
         if isinstance(payload, dict) and "text" in payload:
             self._set_status_text(str(payload["text"]))
             return
         self._set_status_text(str(payload))
 
+    def _set_progress_error_state(self, enabled: bool) -> None:
+        self._progress_error_state = enabled
+        if enabled:
+            self.progress.setStyleSheet(
+                "QProgressBar {"
+                " border: 1px solid #6b2d2d;"
+                " border-radius: 4px;"
+                " background-color: #241818;"
+                " text-align: center;"
+                " color: #f3d6d6;"
+                "}"
+                "QProgressBar::chunk {"
+                " background-color: #d9534f;"
+                "}"
+            )
+            return
+        self.progress.setStyleSheet("")
+
     def _reset_progress_bar(self, indeterminate: bool = False) -> None:
         self._progress_started = False
+        self._set_progress_error_state(False)
         if indeterminate:
             self.progress.setRange(0, 0)
             self.progress.setValue(0)
             return
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
+
+    def _freeze_progress_bar_on_error(self) -> None:
+        self.progress.setRange(0, 100)
+        self.progress.setValue(100)
+        self._set_progress_error_state(True)
 
     def _handle_worker_progress(self, value: int) -> None:
         if not self._progress_started:
@@ -570,9 +594,8 @@ class MainWindow(QMainWindow):
         self.keep_audio.setChecked(s.keep_audio)
         self._reload_ogv_mode_options(self.engine_profile.currentText(), s.selected_ogv_mode)
         self.atlas_fps.setValue(max(1, min(30, s.atlas_fps or 5)))
-        self._set_combo_value(self.atlas_mode, s.selected_atlas_mode, "grid")
-        self._set_combo_value(self.atlas_res, s.selected_atlas_resolution, "Medium")
-        self._set_combo_value(self.atlas_backend, s.selected_atlas_backend, "ffmpeg")
+        self._reload_atlas_mode_options(s.selected_atlas_mode)
+        self._reload_atlas_resolution_options(s.selected_atlas_resolution)
         self._loading_settings = False
 
     def _set_combo_value(self, combo: QComboBox, value: str, fallback: str) -> None:
@@ -598,6 +621,18 @@ class MainWindow(QMainWindow):
             return data
         return self.ogv_mode.currentText().strip()
 
+    def _atlas_mode_value(self) -> str:
+        data = self.atlas_mode.currentData()
+        if isinstance(data, str) and data.strip():
+            return data
+        return self.atlas_mode.currentText().strip().lower()
+
+    def _atlas_resolution_value(self) -> str:
+        data = self.atlas_res.currentData()
+        if isinstance(data, str) and data.strip():
+            return data
+        return self.atlas_res.currentText().strip()
+
     def _ogv_mode_title_key(self, mode: str) -> str:
         mode_key = (mode or "").strip().lower()
         return {
@@ -616,6 +651,36 @@ class MainWindow(QMainWindow):
             return self._tr(title_key)
         return mode
 
+    def _reload_atlas_mode_options(self, selected: str | None = None) -> None:
+        current = (selected if selected is not None else self._atlas_mode_value()).strip().lower()
+        options = [
+            ("grid", self._tr("atlas_mode_grid")),
+            ("horizontal", self._tr("atlas_mode_horizontal")),
+            ("vertical", self._tr("atlas_mode_vertical")),
+        ]
+        self.atlas_mode.blockSignals(True)
+        self.atlas_mode.clear()
+        for value, label in options:
+            self.atlas_mode.addItem(label, value)
+        idx = self.atlas_mode.findData(current)
+        self.atlas_mode.setCurrentIndex(idx if idx >= 0 else 0)
+        self.atlas_mode.blockSignals(False)
+
+    def _reload_atlas_resolution_options(self, selected: str | None = None) -> None:
+        current = (selected if selected is not None else self._atlas_resolution_value()).strip()
+        options = [
+            ("Low", self._tr("atlas_resolution_low")),
+            ("Medium", self._tr("atlas_resolution_medium")),
+            ("High", self._tr("atlas_resolution_high")),
+        ]
+        self.atlas_res.blockSignals(True)
+        self.atlas_res.clear()
+        for value, label in options:
+            self.atlas_res.addItem(label, value)
+        idx = self.atlas_res.findData(current)
+        self.atlas_res.setCurrentIndex(idx if idx >= 0 else 1)
+        self.atlas_res.blockSignals(False)
+
     def save_ui_settings(self) -> None:
         if self._loading_settings:
             return
@@ -630,11 +695,13 @@ class MainWindow(QMainWindow):
             keep_audio=self.keep_audio.isChecked(),
             fps=f"{self.fps.value():g}",
             atlas_fps=self.atlas_fps.value(),
-            selected_atlas_mode=self.atlas_mode.currentText(),
-            selected_atlas_resolution=self.atlas_res.currentText(),
-            selected_atlas_backend=self.atlas_backend.currentText(),
+            selected_atlas_mode=self._atlas_mode_value(),
+            selected_atlas_resolution=self._atlas_resolution_value(),
         )
-        save_settings(s)
+        try:
+            save_settings(s)
+        except OSError as exc:
+            print(f"Warning: failed to save settings: {exc}", file=sys.stderr)
 
     def _tr(self, key: str, **kwargs) -> str:
         lang = self.language.currentText() if hasattr(self, "language") else LANGUAGE_LABELS[0]
@@ -799,7 +866,6 @@ class MainWindow(QMainWindow):
 
     def _render_summary_html(self, info) -> str:
         title, body = self._current_preset_summary()
-        compatibility, speed, size = self._estimate_levels(info)
         source_name = Path(self._selected_primary_path()).name if self._selected_primary_path() else self._tr("no_file_selected")
         items = [
             f"{self._tr('summary_engine')}: {self.engine_profile.currentText()}",
@@ -810,18 +876,11 @@ class MainWindow(QMainWindow):
             f"{self._tr('summary_audio')}: {self._tr('audio_kept') if self.keep_audio.isChecked() else self._tr('audio_removed')}",
             f"{self._tr('summary_output_file')}: {Path(self.output.text().strip() or 'output') / self._output_preview_name()}",
         ]
-        estimates = [
-            f"{self._tr('estimate_compatibility_label')}: <b>{html.escape(compatibility)}</b>",
-            f"{self._tr('estimate_speed_label')}: <b>{html.escape(speed)}</b>",
-            f"{self._tr('estimate_size_label')}: <b>{html.escape(size)}</b>",
-        ]
         return (
             f"<h3>{html.escape(self._tr('summary_title'))}</h3>"
             f"<p><b>{html.escape(source_name)}</b></p>"
             f"{_html_list(items)}"
             f"<p><b>{html.escape(self._tr('summary_expectation'))}</b> {html.escape(self._summary_expectation())}</p>"
-            f"<p><b>{html.escape(self._tr('summary_estimates'))}</b><br>{'<br>'.join(estimates)}</p>"
-            f"<p><b>{html.escape(self._tr('summary_why_title'))}</b> {html.escape(body)}</p>"
         )
 
     def _recommendation_bullets(self, info) -> tuple[list[str], list[str], list[str]]:
@@ -888,12 +947,18 @@ class MainWindow(QMainWindow):
             sections.insert(1, f"<h3>{html.escape(self._tr('guide_risks_title'))}</h3>{_html_list(risks)}")
         return "".join(sections)
 
-    def _refresh_experience_panels(self) -> None:
+    def _refresh_experience_panels(self, *_args, invalid_video_name: str | None = None) -> None:
         title, body = self._current_preset_summary()
         self.format_hint.clear()
         self.preset_group.setTitle(self._tr("preset_group_title"))
         self.preset_title.setText(f"<b>{html.escape(title)}</b>")
         self.preset_body.setText(f"<p>{html.escape(body)}</p>")
+        if invalid_video_name:
+            self.summary_text.setHtml(self._render_summary_html(None))
+            self.guidance_text.setHtml(
+                f"<p>{html.escape(self._tr('invalid_video_file', name=invalid_video_name))}</p>"
+            )
+            return
         info = self._selected_video_info()
         self.summary_text.setHtml(self._render_summary_html(info))
         self.guidance_text.setHtml(self._render_guidance_html(info))
@@ -921,12 +986,13 @@ class MainWindow(QMainWindow):
         self.frames_label.setText(self._tr("frames"))
         self.mode_label.setText(self._tr("mode"))
         self.atlas_resolution_label.setText(self._tr("resolution"))
-        self.backend_label.setText(self._tr("backend"))
         self.rec_group.setTitle(self._tr("rec_title"))
         self.btn_cancel.setText(self._tr("cancel"))
         self.tabs.setTabText(0, self._tr("tab_convert"))
         self.tabs.setTabText(1, self._tr("tab_atlas"))
         self._reload_ogv_mode_options(self.engine_profile.currentText(), self._ogv_mode_value())
+        self._reload_atlas_mode_options(self._atlas_mode_value())
+        self._reload_atlas_resolution_options(self._atlas_resolution_value())
         self._update_action_button()
         self._refresh_status_label()
         self._refresh_experience_panels()
@@ -938,7 +1004,7 @@ class MainWindow(QMainWindow):
 
     def on_engine_profile_changed(self):
         self._reload_ogv_mode_options(self.engine_profile.currentText())
-        self.refresh_selected_info()
+        self._refresh_experience_panels()
         self.save_ui_settings()
 
     def _coerce_video_fps(self, value: str | float | int | None) -> float:
@@ -987,7 +1053,6 @@ class MainWindow(QMainWindow):
         self.atlas_fps.setEnabled(not busy)
         self.atlas_mode.setEnabled(not busy)
         self.atlas_res.setEnabled(not busy)
-        self.atlas_backend.setEnabled(not busy)
         self.btn_cancel.setEnabled(busy)
 
     def _update_action_button(self) -> None:
@@ -1076,14 +1141,11 @@ class MainWindow(QMainWindow):
         try:
             info = self._cached_probe(src)
             if not info.is_valid:
-                self.guidance_text.setHtml(f"<p>{html.escape(self._tr('invalid_video_file', name=Path(src).name))}</p>")
-                self.summary_text.setHtml(self._render_summary_html(None))
+                self._refresh_experience_panels(invalid_video_name=Path(src).name)
                 return
-            self.summary_text.setHtml(self._render_summary_html(info))
-            self.guidance_text.setHtml(self._render_guidance_html(info))
+            self._refresh_experience_panels()
         except Exception:
-            self.guidance_text.setHtml(f"<p>{html.escape(self._tr('invalid_video_file', name=Path(src).name))}</p>")
-            self.summary_text.setHtml(self._render_summary_html(None))
+            self._refresh_experience_panels(invalid_video_name=Path(src).name)
 
     def on_add_files(self):
         files, _ = QFileDialog.getOpenFileNames(self, self._tr("select_videos"))
@@ -1238,9 +1300,8 @@ class MainWindow(QMainWindow):
 
         atlas_cfg = {
             "fps": self.atlas_fps.value(),
-            "mode": self.atlas_mode.currentText(),
-            "resolution": self.atlas_res.currentText(),
-            "backend": self.atlas_backend.currentText(),
+            "mode": self._atlas_mode_value(),
+            "resolution": self._atlas_resolution_value(),
         }
 
         def _run(cancel_event: Event, progress_cb, status_cb):
@@ -1270,7 +1331,6 @@ class MainWindow(QMainWindow):
                     fps=atlas_cfg["fps"],
                     mode=atlas_cfg["mode"],
                     atlas_resolution=atlas_cfg["resolution"],
-                    backend=atlas_cfg["backend"],
                     cancel_event=cancel_event,
                     on_progress=_per_file,
                 )

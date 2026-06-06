@@ -31,6 +31,12 @@ UI_TEXT = {
         "ogv_mode": "OGV mode",
         "frames": "Frames",
         "mode": "Mode",
+        "atlas_mode_grid": "Grid",
+        "atlas_mode_horizontal": "Horizontal",
+        "atlas_mode_vertical": "Vertical",
+        "atlas_resolution_low": "Low",
+        "atlas_resolution_medium": "Medium",
+        "atlas_resolution_high": "High",
         "backend": "Backend",
         "info_title": "Selected Video Info",
         "rec_title": "Information",
@@ -41,6 +47,13 @@ UI_TEXT = {
         "done": "Done",
         "cancelled": "Cancelled",
         "cancelling": "Cancelling...",
+        "error_prefix": "Error: {message}",
+        "error_atlas_too_large": "Atlas too large ({size}). Reduce FPS or resolution.",
+        "error_input_file_not_found": "Input file not found: {name}",
+        "error_video_fps_range": "Video FPS must be between 1 and 60.",
+        "error_atlas_fps_range": "Atlas FPS must be between 1 and 30.",
+        "error_invalid_video_file_runtime": "Invalid video file.",
+        "error_ffmpeg_failed": "FFmpeg failed: {detail}",
         "operation_in_progress": "Operation in progress",
         "operation_in_progress_text": "A conversion is running. Do you want to cancel and exit?",
         "invalid_video_file": "Invalid video file: {name}",
@@ -56,7 +69,7 @@ UI_TEXT = {
         "select_output_folder": "Select output folder",
         "open_output_folder": "Open output folder",
         "open_output_folder_error": "Could not open output folder",
-        "about_text": "Godot Video Converter is free and open-source software focused on video conversion and atlas generation for Godot and Love2D.\n\nVersión {version}\nDeveloper: Lextrack",
+        "about_text": "Godot Video Converter is free and open-source software focused on video conversion and atlas generation for Godot and Love2D.\n\nVersion {version}\nDeveloper: Lextrack",
         "no_files_title": "No files",
         "no_files_text": "Add at least one video file",
         "invalid_fps_title": "Invalid FPS",
@@ -136,7 +149,7 @@ UI_TEXT = {
         "no_file_selected": "No file selected",
         "guide_source_title": "What the source suggests",
         "guide_risks_title": "Watch-outs",
-        "guide_preset_title": "Why '{preset}' fits",
+        "guide_preset_title": "About '{preset}'",
         "guide_next_title": "Recommended next move",
         "insight_short_clip": "Short clip: good candidate for loops, UI motion, and snappy playback.",
         "insight_medium_clip": "Medium clip: flexible for in-game scenes, screens, or short cinematics.",
@@ -179,6 +192,12 @@ UI_TEXT = {
         "ogv_mode": "Modo OGV",
         "frames": "Frames",
         "mode": "Modo",
+        "atlas_mode_grid": "Cuadricula",
+        "atlas_mode_horizontal": "Horizontal",
+        "atlas_mode_vertical": "Vertical",
+        "atlas_resolution_low": "Baja",
+        "atlas_resolution_medium": "Media",
+        "atlas_resolution_high": "Alta",
         "backend": "Backend",
         "info_title": "Info del Video Seleccionado",
         "rec_title": "Información",
@@ -189,6 +208,13 @@ UI_TEXT = {
         "done": "Terminado",
         "cancelled": "Cancelado",
         "cancelling": "Cancelando...",
+        "error_prefix": "Error: {message}",
+        "error_atlas_too_large": "Atlas demasiado grande ({size}). Reduce los FPS o la resolución.",
+        "error_input_file_not_found": "No se encontró el archivo de entrada: {name}",
+        "error_video_fps_range": "Los FPS de video deben estar entre 1 y 60.",
+        "error_atlas_fps_range": "Los FPS del atlas deben estar entre 1 y 30.",
+        "error_invalid_video_file_runtime": "Archivo de video inválido.",
+        "error_ffmpeg_failed": "FFmpeg falló: {detail}",
         "operation_in_progress": "Operación en progreso",
         "operation_in_progress_text": "Hay una conversión en curso. ¿Quieres cancelar y salir?",
         "invalid_video_file": "Archivo de video inválido: {name}",
@@ -284,7 +310,7 @@ UI_TEXT = {
         "no_file_selected": "Ningún archivo seleccionado",
         "guide_source_title": "Lo que sugiere el archivo fuente",
         "guide_risks_title": "Puntos a vigilar",
-        "guide_preset_title": "Por qué encaja '{preset}'",
+        "guide_preset_title": "Acerca de '{preset}'",
         "guide_next_title": "Siguiente paso recomendado",
         "insight_short_clip": "Clip corto: buena opción para loops, movimiento de UI y reproducción ágil.",
         "insight_medium_clip": "Clip medio: flexible para escenas dentro del juego, pantallas o cinemáticas cortas.",
@@ -327,6 +353,12 @@ UI_TEXT = {
         "ogv_mode": "Mode OGV",
         "frames": "Images",
         "mode": "Mode",
+        "atlas_mode_grid": "Grille",
+        "atlas_mode_horizontal": "Horizontal",
+        "atlas_mode_vertical": "Vertical",
+        "atlas_resolution_low": "Basse",
+        "atlas_resolution_medium": "Moyenne",
+        "atlas_resolution_high": "Haute",
         "backend": "Backend",
         "info_title": "Informations de la vidéo sélectionnée",
         "rec_title": "Informations",
@@ -337,6 +369,13 @@ UI_TEXT = {
         "done": "Terminé",
         "cancelled": "Annulé",
         "cancelling": "Annulation...",
+        "error_prefix": "Erreur : {message}",
+        "error_atlas_too_large": "Atlas trop grand ({size}). Réduisez les FPS ou la résolution.",
+        "error_input_file_not_found": "Fichier d'entrée introuvable : {name}",
+        "error_video_fps_range": "Les FPS vidéo doivent être compris entre 1 et 60.",
+        "error_atlas_fps_range": "Les FPS de l'atlas doivent être compris entre 1 et 30.",
+        "error_invalid_video_file_runtime": "Fichier vidéo invalide.",
+        "error_ffmpeg_failed": "FFmpeg a échoué : {detail}",
         "operation_in_progress": "Opération en cours",
         "operation_in_progress_text": "Une conversion est en cours. Voulez-vous annuler et quitter ?",
         "invalid_video_file": "Fichier vidéo invalide : {name}",
@@ -352,7 +391,7 @@ UI_TEXT = {
         "select_output_folder": "Sélectionner le dossier de sortie",
         "open_output_folder": "Ouvrir le dossier de sortie",
         "open_output_folder_error": "Impossible d'ouvrir le dossier de sortie",
-        "about_text": "Godot Video Converter est un logiciel libre et open source axé sur la conversion vidéo et la génération d'atlas pour Godot et Love2D.\n\nVersión {version}\nDéveloppeur : Lextrack",
+        "about_text": "Godot Video Converter est un logiciel libre et open source axé sur la conversion vidéo et la génération d'atlas pour Godot et Love2D.\n\nVersion {version}\nDéveloppeur : Lextrack",
         "no_files_title": "Aucun fichier",
         "no_files_text": "Ajoutez au moins un fichier vidéo",
         "invalid_fps_title": "FPS invalide",
@@ -432,7 +471,7 @@ UI_TEXT = {
         "no_file_selected": "Aucun fichier sélectionné",
         "guide_source_title": "Ce que suggère la source",
         "guide_risks_title": "Points de vigilance",
-        "guide_preset_title": "Pourquoi '{preset}' convient",
+        "guide_preset_title": "A propos de '{preset}'",
         "guide_next_title": "Prochaine étape recommandée",
         "insight_short_clip": "Clip court : bon candidat pour les boucles, le mouvement d'interface et une lecture réactive.",
         "insight_medium_clip": "Clip moyen : flexible pour des scènes en jeu, des écrans ou de courtes cinématiques.",
@@ -475,6 +514,12 @@ UI_TEXT = {
         "ogv_mode": "OGV-Modus",
         "frames": "Frames",
         "mode": "Modus",
+        "atlas_mode_grid": "Raster",
+        "atlas_mode_horizontal": "Horizontal",
+        "atlas_mode_vertical": "Vertikal",
+        "atlas_resolution_low": "Niedrig",
+        "atlas_resolution_medium": "Mittel",
+        "atlas_resolution_high": "Hoch",
         "backend": "Backend",
         "info_title": "Informationen zum ausgewählten Video",
         "rec_title": "Informationen",
@@ -485,6 +530,13 @@ UI_TEXT = {
         "done": "Fertig",
         "cancelled": "Abgebrochen",
         "cancelling": "Wird abgebrochen...",
+        "error_prefix": "Fehler: {message}",
+        "error_atlas_too_large": "Atlas zu groß ({size}). Reduziere FPS oder Auflösung.",
+        "error_input_file_not_found": "Eingabedatei nicht gefunden: {name}",
+        "error_video_fps_range": "Video-FPS müssen zwischen 1 und 60 liegen.",
+        "error_atlas_fps_range": "Atlas-FPS müssen zwischen 1 und 30 liegen.",
+        "error_invalid_video_file_runtime": "Ungültige Videodatei.",
+        "error_ffmpeg_failed": "FFmpeg fehlgeschlagen: {detail}",
         "operation_in_progress": "Vorgang läuft",
         "operation_in_progress_text": "Eine Konvertierung läuft gerade. Möchtest du abbrechen und beenden?",
         "invalid_video_file": "Ungültige Videodatei: {name}",
@@ -500,7 +552,7 @@ UI_TEXT = {
         "select_output_folder": "Ausgabeordner auswählen",
         "open_output_folder": "Ausgabeordner öffnen",
         "open_output_folder_error": "Der Ausgabeordner konnte nicht geöffnet werden",
-        "about_text": "Godot Video Converter ist freie Open-Source-Software mit Fokus auf Videokonvertierung und Atlas-Erzeugung für Godot und Love2D.\n\nVersión {version}\nEntwickler: Lextrack",
+        "about_text": "Godot Video Converter ist freie Open-Source-Software mit Fokus auf Videokonvertierung und Atlas-Erzeugung für Godot und Love2D.\n\nVersion {version}\nEntwickler: Lextrack",
         "no_files_title": "Keine Dateien",
         "no_files_text": "Füge mindestens eine Videodatei hinzu",
         "invalid_fps_title": "Ungültige FPS",
@@ -580,7 +632,7 @@ UI_TEXT = {
         "no_file_selected": "Keine Datei ausgewählt",
         "guide_source_title": "Was die Quelle nahelegt",
         "guide_risks_title": "Worauf du achten solltest",
-        "guide_preset_title": "Warum '{preset}' passt",
+        "guide_preset_title": "Uber '{preset}'",
         "guide_next_title": "Empfohlener nächster Schritt",
         "insight_short_clip": "Kurzer Clip: gut geeignet für Loops, UI-Bewegung und reaktive Wiedergabe.",
         "insight_medium_clip": "Mittlerer Clip: flexibel für Spielszenen, Bildschirme oder kurze Zwischensequenzen.",
@@ -1100,6 +1152,35 @@ def ui_text(language: str, key: str, **kwargs) -> str:
             return fallback_text.format(**kwargs)
         except (IndexError, KeyError, ValueError):
             return fallback_text
+
+
+def translate_runtime_error(message: str, language: str) -> str:
+    text = (message or "").strip()
+    if not text:
+        return ""
+
+    match = re.fullmatch(r"Atlas too large \(([^)]+)\)\. Reduce FPS or resolution\.", text)
+    if match:
+        return ui_text(language, "error_atlas_too_large", size=match.group(1))
+
+    match = re.fullmatch(r"Input file not found: (.+)", text)
+    if match:
+        return ui_text(language, "error_input_file_not_found", name=match.group(1))
+
+    if text == "video fps must be between 1 and 60":
+        return ui_text(language, "error_video_fps_range")
+
+    if text == "atlas fps must be between 1 and 30":
+        return ui_text(language, "error_atlas_fps_range")
+
+    if text == "invalid video file":
+        return ui_text(language, "error_invalid_video_file_runtime")
+
+    match = re.fullmatch(r"FFmpeg failed: (.+)", text)
+    if match:
+        return ui_text(language, "error_ffmpeg_failed", detail=match.group(1))
+
+    return text
 
 
 def translate_recommendations(text: str, language: str) -> str:

@@ -40,7 +40,7 @@ Love2D OGV modes:
 
 - Export PNG atlases from video clips
 - Layout modes: `grid`, `horizontal`, `vertical`
-- Backends: `ffmpeg`, `opencv`
+- Uses `ffmpeg` for frame sampling and atlas generation
 
 ## Requirements
 

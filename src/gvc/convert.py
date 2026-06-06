@@ -27,8 +27,6 @@ LOVE2D_OGV_MODES = (
 )
 
 OGV_QUALITY_PROFILES = {
-    # Keep quality VBR-driven and let engine presets control playback strategy.
-    # Balanced maps to Godot's published q:v/q:a 6 baseline.
     "ultra": ("8", "6"),
     "high": ("7", "6"),
     "balanced": ("6", "6"),
@@ -36,8 +34,7 @@ OGV_QUALITY_PROFILES = {
     "tiny": ("4", "4"),
 }
 
-# OGV presets stay intentionally simple: quality controls VBR level, while
-# engine presets mainly adjust GOP/keyframe cadence and playback robustness.
+
 OGV_LOOP_GOP = "12"
 OGV_LOOP_MIN_KEYINT = "1"
 
@@ -117,9 +114,6 @@ def _video_codec_args(fmt: str, quality: str, ogv_mode: str, engine_profile: str
     if fmt == "gif":
         return [], [], ["-loop", "0"]
 
-    # OGV defaults remain quality-driven, while engine profiles provide
-    # engine-specific presets for seek behavior, looping, and compatibility.
-
     godot_modes = {
         "official godot": [
             "-pix_fmt",
@@ -169,7 +163,6 @@ def _video_codec_args(fmt: str, quality: str, ogv_mode: str, engine_profile: str
             "-keyint_min",
             "60",
         ],
-        # Backward compatibility with previous saved settings only.
         "standard": ["-pix_fmt", "yuv420p", "-g", "30", "-keyint_min", "30"],
         "constant fps (cfr)": ["-pix_fmt", "yuv420p", "-g", "15", "-keyint_min", "15", "-fps_mode", "cfr"],
         "optimized for weak hardware": ["-pix_fmt", "yuv420p", "-g", "60", "-keyint_min", "30", "-threads", "4"],
@@ -228,7 +221,6 @@ def _video_codec_args(fmt: str, quality: str, ogv_mode: str, engine_profile: str
     else:
         extra = list(godot_modes.get(mode_key, godot_modes["official godot"]))
 
-    # Theora is more reliable when we keep timestamps/frame pacing constant.
     if "-fps_mode" not in extra:
         extra.extend(["-fps_mode", "cfr"])
     return video, audio, extra
@@ -262,7 +254,6 @@ def _build_filter_chain(fmt: str, fps: float | None, resolution: str | None, qua
             filters.append(f"scale={w}:{h}:force_original_aspect_ratio=decrease")
 
     if fmt == "ogv":
-        # yuv420p-backed outputs are safer when the encoded frame size stays even.
         filters.append("scale=trunc(iw/2)*2:trunc(ih/2)*2")
 
     if fps and fps > 0:
