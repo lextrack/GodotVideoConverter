@@ -24,11 +24,11 @@ def _map_atlas_resolution(value: str | None) -> tuple[int, int] | None:
         return None
     s = value.strip().lower()
     if s in {"low"}:
-        return 64, 64
-    if s in {"medium"}:
         return 128, 128
-    if s in {"high"}:
+    if s in {"medium"}:
         return 256, 256
+    if s in {"high"}:
+        return 512, 512
 
     parts = s.split("x")
     if len(parts) != 2:
@@ -65,7 +65,7 @@ def _validate_output_size(cols: int, rows: int, frame_w: int, frame_h: int) -> N
     atlas_h = rows * frame_h
     if atlas_w > 16384 or atlas_h > 16384:
         raise ValueError(
-            f"Atlas too large ({atlas_w}x{atlas_h}). Reduce FPS or resolution."
+            f"Atlas too large ({atlas_w}x{atlas_h}). Reduce FPS."
         )
 
 

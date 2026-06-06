@@ -13,7 +13,9 @@ from PySide6.QtGui import (
     QDragEnterEvent,
     QDropEvent,
     QIcon,
+    QKeySequence,
     QPalette,
+    QShortcut,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -183,6 +185,7 @@ class MainWindow(QMainWindow):
         files_row.setSpacing(8)
         self.files = QListWidget()
         self.files.setSelectionMode(QListWidget.ExtendedSelection)
+        self.files_delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, self.files)
         files_btns = QVBoxLayout()
         files_btns.setSpacing(8)
         self.btn_add = QPushButton("Add Files")
@@ -389,6 +392,7 @@ class MainWindow(QMainWindow):
         self.btn_add.clicked.connect(self.on_add_files)
         self.btn_remove.clicked.connect(self.on_remove_selected)
         self.btn_clear.clicked.connect(self.on_clear)
+        self.files_delete_shortcut.activated.connect(self.on_remove_selected)
         self.btn_output_change.clicked.connect(self.on_output_dir)
         self.btn_output_open.clicked.connect(self.on_open_output_dir)
         self.btn_about.clicked.connect(self.on_about)

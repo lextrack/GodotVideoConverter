@@ -49,7 +49,7 @@ UI_TEXT = {
         "cancelled": "Cancelled",
         "cancelling": "Cancelling...",
         "error_prefix": "Error: {message}",
-        "error_atlas_too_large": "Atlas too large ({size}). Reduce FPS or resolution.",
+        "error_atlas_too_large": "Atlas too large ({size}). Reduce FPS.",
         "error_input_file_not_found": "Input file not found: {name}",
         "error_video_fps_range": "Video FPS must be between 1 and 60.",
         "error_atlas_fps_range": "Atlas FPS must be between 1 and 30.",
@@ -211,7 +211,7 @@ UI_TEXT = {
         "cancelled": "Cancelado",
         "cancelling": "Cancelando...",
         "error_prefix": "Error: {message}",
-        "error_atlas_too_large": "Atlas demasiado grande ({size}). Reduce los FPS o la resolución.",
+        "error_atlas_too_large": "Atlas demasiado grande ({size}). Reduce los FPS.",
         "error_input_file_not_found": "No se encontró el archivo de entrada: {name}",
         "error_video_fps_range": "Los FPS de video deben estar entre 1 y 60.",
         "error_atlas_fps_range": "Los FPS del atlas deben estar entre 1 y 30.",
@@ -373,7 +373,7 @@ UI_TEXT = {
         "cancelled": "Annulé",
         "cancelling": "Annulation...",
         "error_prefix": "Erreur : {message}",
-        "error_atlas_too_large": "Atlas trop grand ({size}). Réduisez les FPS ou la résolution.",
+        "error_atlas_too_large": "Atlas trop grand ({size}). Réduisez les FPS.",
         "error_input_file_not_found": "Fichier d'entrée introuvable : {name}",
         "error_video_fps_range": "Les FPS vidéo doivent être compris entre 1 et 60.",
         "error_atlas_fps_range": "Les FPS de l'atlas doivent être compris entre 1 et 30.",
@@ -535,7 +535,7 @@ UI_TEXT = {
         "cancelled": "Abgebrochen",
         "cancelling": "Wird abgebrochen...",
         "error_prefix": "Fehler: {message}",
-        "error_atlas_too_large": "Atlas zu groß ({size}). Reduziere FPS oder Auflösung.",
+        "error_atlas_too_large": "Atlas zu groß ({size}). Reduziere die FPS.",
         "error_input_file_not_found": "Eingabedatei nicht gefunden: {name}",
         "error_video_fps_range": "Video-FPS müssen zwischen 1 und 60 liegen.",
         "error_atlas_fps_range": "Atlas-FPS müssen zwischen 1 und 30 liegen.",
@@ -1163,7 +1163,7 @@ def translate_runtime_error(message: str, language: str) -> str:
     if not text:
         return ""
 
-    match = re.fullmatch(r"Atlas too large \(([^)]+)\)\. Reduce FPS or resolution\.", text)
+    match = re.fullmatch(r"Atlas too large \(([^)]+)\)\. Reduce FPS\.", text)
     if match:
         return ui_text(language, "error_atlas_too_large", size=match.group(1))
 
