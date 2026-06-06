@@ -35,32 +35,18 @@ try {
     Write-Step "FFmpeg binaries found in ./bin."
 
     Write-Step "Installing build dependencies..."
-    & python -m pip install -r requirements-dev.txt
+    & python -m pip install -e ".[build]"
     if ($LASTEXITCODE -ne 0) {
-        Fail "Failed installing requirements-dev.txt"
-    }
-
-    Write-Step "Installing project in editable mode..."
-    & python -m pip install -e .
-    if ($LASTEXITCODE -ne 0) {
-        Fail "Failed installing project with pip install -e ."
+        Fail "Failed installing project with pip install -e .[build]"
     }
 
     Write-Step "Running PyInstaller (GUI mode)..."
     & python -m PyInstaller `
       --noconfirm `
       --clean `
-      --name gvc `
-      --windowed `
-      --onedir `
-      --icon "Assets/icon.ico" `
-      --copy-metadata godot-video-converter-py `
-      --add-data "Assets/icon.png;Assets" `
-      --add-data "Assets/icon.ico;Assets" `
-      --add-binary "bin/ffmpeg.exe;bin" `
-      --add-binary "bin/ffprobe.exe;bin" `
-      --paths src `
-      src/gvc/__main__.py
+      --distpath dist `
+      --workpath .pyinstaller/build `
+      gvc.spec
     if ($LASTEXITCODE -ne 0) {
         Fail "PyInstaller failed. Check the messages above for details."
     }
@@ -72,6 +58,7 @@ try {
     Write-Host ""
     Write-Host "[GVC BUILD] Build completed successfully." -ForegroundColor Green
     Write-Host "[GVC BUILD] Output: dist/gvc/" -ForegroundColor Green
+    Write-Host "[GVC BUILD] Temporary PyInstaller files: .pyinstaller/build/" -ForegroundColor DarkGray
     Write-Host "[GVC BUILD] Run with: .\\dist\\gvc\\gvc.exe" -ForegroundColor Green
 }
 catch {

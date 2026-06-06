@@ -58,6 +58,10 @@ On Linux, `ffmpeg` and `ffprobe` should be available in `PATH`.
 
 ## Development Environment
 
+The project metadata in `pyproject.toml` is the source of truth for dependencies.
+
+- Use `pip install -e .` for regular development.
+
 ### Windows
 
 1. Install Python `3.11+`.
@@ -74,10 +78,9 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 ```
 
-5. Install Python dependencies:
+5. Install the app in editable mode:
 
 ```powershell
-pip install -r requirements.txt
 pip install -e .
 ```
 
@@ -110,11 +113,16 @@ python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-6. Install Python dependencies:
+If you use `fish`, activate it with:
+
+```fish
+source .venv/bin/activate.fish
+```
+
+6. Install the app in editable mode:
 
 ```bash
-pip install -r requirements.txt
-pip install -e .
+python -m pip install -e .
 ```
 
 7. Verify FFmpeg:
@@ -128,6 +136,12 @@ ffprobe -version
 
 ```bash
 gvc-gui
+```
+
+If the console command is not available for any reason, you can also run:
+
+```bash
+python -m gvc
 ```
 
 ### Linux Package Examples
@@ -165,6 +179,7 @@ Make sure `ffmpeg` and `ffprobe` are available in `PATH`, then run:
 bash scripts/build_linux.sh
 ```
 
+The script installs the required build dependencies and runs `PyInstaller` with `gvc.spec`.
 Output is generated in `dist/gvc/`.
 
 ### Windows
@@ -175,7 +190,9 @@ Copy `ffmpeg.exe` and `ffprobe.exe` into `bin/`, then run:
 ./scripts/build_windows.ps1
 ```
 
+The script installs the required build dependencies and runs `PyInstaller` with `gvc.spec`.
 Output is generated in `dist/gvc/`.
+Run `dist/gvc/gvc.exe`.
 
 ## Project Structure
 

@@ -7,7 +7,17 @@ name = "godot-video-converter-py"
 version = "1.0.5"
 description = "Godot-focused video conversion and atlas generation utility built with Python and FFmpeg"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "PySide6>=6.8,<7",
+    "numpy>=2.0,<3",
+    "Pillow>=10,<12",
+    "opencv-python-headless>=4.10,<5",
+]
+
+[project.optional-dependencies]
+build = [
+    "pyinstaller>=6.13,<7",
+]
 
 [project.scripts]
 gvc-gui = "gvc.gui:main"

@@ -9,20 +9,13 @@ if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; 
   exit 1
 fi
 
-python -m pip install -r requirements-dev.txt
-python -m pip install -e .
+python -m pip install -e ".[build]"
 
 python -m PyInstaller \
   --noconfirm \
   --clean \
-  --name gvc \
-  --onedir \
-  --windowed \
-  --icon Assets/icon.png \
-  --copy-metadata godot-video-converter-py \
-  --add-data "Assets/icon.png:Assets" \
-  --add-data "Assets/icon.ico:Assets" \
-  --paths src \
-  src/gvc/__main__.py
+  --distpath dist \
+  --workpath .pyinstaller/build \
+  gvc.spec
 
 echo "Build ready at dist/gvc/"
