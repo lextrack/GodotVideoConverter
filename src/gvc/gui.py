@@ -985,7 +985,7 @@ class MainWindow(QMainWindow):
         self.ogv_mode_label.setText(self._tr("ogv_mode"))
         self.frames_label.setText(self._tr("frames"))
         self.mode_label.setText(self._tr("mode"))
-        self.atlas_resolution_label.setText(self._tr("resolution"))
+        self.atlas_resolution_label.setText(self._tr("atlas_frame_size"))
         self.rec_group.setTitle(self._tr("rec_title"))
         self.btn_cancel.setText(self._tr("cancel"))
         self.tabs.setTabText(0, self._tr("tab_convert"))
