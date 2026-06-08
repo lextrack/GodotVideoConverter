@@ -4,6 +4,10 @@ Desktop app for converting videos into game-ready formats, especially `ogv` for 
 
 This project is a Python rewrite of the original .NET tool I made some time ago.
 
+## Download
+
+[![Windows and Linux on itch.io](https://img.shields.io/badge/Windows_%26_Linux-itch.io-FA5C5C?style=for-the-badge&logo=itchdotio&logoColor=white)](https://lextrack.itch.io/godot-video-converter)
+
 ## Features
 
 - Convert videos to `ogv`, `mp4`, `webm`, and `gif`
