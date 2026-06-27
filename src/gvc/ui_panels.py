@@ -52,6 +52,14 @@ RESOLUTION_PRESETS = (
     "3840x2160",
 )
 
+QUALITY_OPTIONS = (
+    "ultra",
+    "high",
+    "balanced",
+    "optimized",
+    "tiny",
+)
+
 
 def build_main_window_ui(win, language_labels: tuple[str, ...], engine_profiles: tuple[str, ...]) -> None:
     root = QWidget()
@@ -152,7 +160,8 @@ def _build_convert_controls(win, convert_layout: QVBoxLayout, engine_profiles: t
     win.format.addItems(["ogv", "mp4", "webm", "gif"])
     win.format.setMinimumWidth(130)
     win.quality = QComboBox()
-    win.quality.addItems(["ultra", "high", "balanced", "optimized", "tiny"])
+    for quality in QUALITY_OPTIONS:
+        win.quality.addItem(quality, quality)
     win.quality.setMinimumWidth(130)
     win.resolution = QComboBox()
     win.resolution.setEditable(True)

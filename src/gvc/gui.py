@@ -20,11 +20,20 @@ from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QFileDial
 from gvc.batch import AtlasBatchConfig, BatchPaths, ConvertBatchConfig, ProbeCache, convert_batch, generate_atlas_batch
 from gvc.convert import ENGINE_PROFILES, ogv_modes_for_profile, validate_resolution
 from gvc.experience import ExperienceContext, guidance_html, preset_summary, summary_html
+from gvc.file_selection import (
+    add_files_to_list,
+    clear_files,
+    ensure_initial_selection,
+    remove_selected_files,
+    selected_inputs,
+    selected_primary_path,
+)
 from gvc.ffmpeg_paths import FFmpegNotFoundError, resolve_ffmpeg_and_ffprobe
 from gvc import __version__
 from gvc.i18n import LANGUAGE_LABELS, language_label_to_code, translate_runtime_error, ui_text
 from gvc.probe import probe_video
 from gvc.settings import load_settings
+from gvc.ui_language import apply_language
 from gvc.ui_panels import build_main_window_ui
 from gvc.ui_state import apply_saved_settings, save_window_settings
 
@@ -95,23 +104,6 @@ class Worker(QObject):
 
 
 class MainWindow(QMainWindow):
-    VIDEO_EXTENSIONS = {
-        ".mp4",
-        ".m4v",
-        ".mov",
-        ".mkv",
-        ".avi",
-        ".webm",
-        ".ogv",
-        ".ogg",
-        ".wmv",
-        ".flv",
-        ".mpg",
-        ".mpeg",
-        ".3gp",
-        ".gif",
-    }
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Godot Video Converter")
@@ -341,6 +333,12 @@ class MainWindow(QMainWindow):
             return data
         return self.atlas_res.currentText().strip()
 
+    def _quality_value(self) -> str:
+        data = self.quality.currentData()
+        if isinstance(data, str) and data.strip():
+            return data
+        return self.quality.currentText().strip().lower()
+
     def _ogv_mode_title_key(self, mode: str) -> str:
         mode_key = (mode or "").strip().lower()
         return {
@@ -403,12 +401,7 @@ class MainWindow(QMainWindow):
         return {ui_text(label, key) for label in LANGUAGE_LABELS}
 
     def _selected_primary_path(self) -> str | None:
-        items = self.files.selectedItems()
-        if items:
-            return items[0].text()
-        if self.files.count() > 0:
-            return self.files.item(0).text()
-        return None
+        return selected_primary_path(self.files)
 
     def _selected_video_info(self):
         src = self._selected_primary_path()
@@ -423,7 +416,7 @@ class MainWindow(QMainWindow):
         return ExperienceContext(
             engine_profile=self.engine_profile.currentText(),
             fmt=self.format.currentText(),
-            quality=self.quality.currentText(),
+            quality=self._quality_value(),
             resolution=self.resolution.currentText().strip(),
             fps=float(self.fps.value()),
             keep_audio=self.keep_audio.isChecked(),
@@ -452,38 +445,7 @@ class MainWindow(QMainWindow):
         self.guidance_text.setHtml(guidance_html(ctx, info, self._tr))
 
     def _apply_language(self) -> None:
-        self.setWindowTitle(self._tr("window_title"))
-        self.btn_add.setText(self._tr("add_files"))
-        self.btn_remove.setText(self._tr("remove_selected"))
-        self.btn_clear.setText(self._tr("clear"))
-        self.output_label.setText(self._tr("output"))
-        self.btn_output_change.setText(self._tr("change_output"))
-        self.btn_output_open.setText(self._tr("open_output"))
-        self.language_label.setText(self._tr("language"))
-        self.btn_about.setText(self._tr("about"))
-        self.engine_profile_label.setText(self._tr("engine_profile"))
-        self.format_label.setText(self._tr("format"))
-        self.quality_label.setText(self._tr("quality"))
-        self.resolution_label.setText(self._tr("resolution"))
-        self.resolution.setItemText(0, self._tr("keep_original"))
-        if self.resolution.currentText() in self._all_translations("keep_original"):
-            self.resolution.setCurrentText(self._tr("keep_original"))
-        self.fps_label.setText(self._tr("fps"))
-        self.keep_audio.setText(self._tr("keep_audio"))
-        self.ogv_mode_label.setText(self._tr("ogv_mode"))
-        self.frames_label.setText(self._tr("frames"))
-        self.mode_label.setText(self._tr("mode"))
-        self.atlas_resolution_label.setText(self._tr("atlas_frame_size"))
-        self.rec_group.setTitle(self._tr("rec_title"))
-        self.btn_cancel.setText(self._tr("cancel"))
-        self.tabs.setTabText(0, self._tr("tab_convert"))
-        self.tabs.setTabText(1, self._tr("tab_atlas"))
-        self._reload_ogv_mode_options(self.engine_profile.currentText(), self._ogv_mode_value())
-        self._reload_atlas_mode_options(self._atlas_mode_value())
-        self._reload_atlas_resolution_options(self._atlas_resolution_value())
-        self._update_action_button()
-        self._refresh_status_label()
-        self._refresh_experience_panels()
+        apply_language(self)
 
     def on_language_changed(self):
         self._apply_language()
@@ -515,13 +477,7 @@ class MainWindow(QMainWindow):
         return resolution
 
     def _selected_inputs(self) -> list[str]:
-        selected = [x.text() for x in self.files.selectedItems()]
-        if selected:
-            return selected
-        return [self.files.item(i).text() for i in range(self.files.count())]
-
-    def _is_probable_video_file(self, path: Path) -> bool:
-        return path.suffix.lower() in self.VIDEO_EXTENSIONS
+        return selected_inputs(self.files)
 
     def _cached_probe(self, src: str):
         cached = self._probe_cache.get(src)
@@ -604,40 +560,24 @@ class MainWindow(QMainWindow):
         self._thread.start()
 
     def _add_files(self, files: list[str]) -> None:
-        existing = {self.files.item(i).text() for i in range(self.files.count())}
-        added = 0
-        rejected = 0
-        for f in files:
-            if not f or f in existing:
-                continue
-            p = Path(f)
-            if not p.exists() or not p.is_file():
-                continue
-            if not self._is_probable_video_file(p):
-                rejected += 1
-                continue
-            self.files.addItem(f)
-            existing.add(f)
-            added += 1
+        result = add_files_to_list(self.files, files)
 
-        if added == 0 and rejected > 0:
+        if result.added == 0 and result.rejected > 0:
             self._set_status_key("no_valid_files_added")
-        elif added > 0 and rejected > 0:
-            self._set_status_key("added_rejected", added=added, rejected=rejected)
-        elif added > 0:
-            self._set_status_key("added_n_files", added=added)
+        elif result.added > 0 and result.rejected > 0:
+            self._set_status_key("added_rejected", added=result.added, rejected=result.rejected)
+        elif result.added > 0:
+            self._set_status_key("added_n_files", added=result.added)
 
-        if self.files.count() > 0 and not self.files.selectedItems():
-            self.files.setCurrentRow(0)
+        if ensure_initial_selection(self.files):
             self.refresh_selected_info()
 
     def refresh_selected_info(self) -> None:
-        items = self.files.selectedItems()
-        if not items:
+        src = selected_primary_path(self.files)
+        if not src:
             self._refresh_experience_panels()
             return
 
-        src = items[0].text()
         try:
             info = self._cached_probe(src)
             if not info.is_valid:
@@ -652,14 +592,11 @@ class MainWindow(QMainWindow):
         self._add_files(files)
 
     def on_remove_selected(self):
-        for item in self.files.selectedItems():
-            self._probe_cache.pop(item.text(), None)
-            self.files.takeItem(self.files.row(item))
+        remove_selected_files(self.files, self._probe_cache)
         self.refresh_selected_info()
 
     def on_clear(self):
-        self.files.clear()
-        self._probe_cache.clear()
+        clear_files(self.files, self._probe_cache)
         self.refresh_selected_info()
         self._set_status_key("list_cleared")
 
@@ -724,7 +661,7 @@ class MainWindow(QMainWindow):
         config = ConvertBatchConfig(
             engine_profile=self.engine_profile.currentText(),
             fmt=self.format.currentText(),
-            quality=self.quality.currentText(),
+            quality=self._quality_value(),
             resolution=resolution,
             fps=fps_val,
             keep_audio=self.keep_audio.isChecked(),

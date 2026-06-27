@@ -21,7 +21,7 @@ def apply_settings(win, settings: AppSettings) -> None:
     win.output.setText(settings.output_folder or str(Path.cwd() / "output"))
     _set_combo_value(win.engine_profile, settings.selected_engine_profile, "Godot")
     _set_combo_value(win.format, settings.selected_format, "ogv")
-    _set_combo_value(win.quality, settings.selected_quality, "optimized")
+    _set_combo_data_value(win.quality, settings.selected_quality, "optimized")
     _set_editable_combo_value(win.resolution, settings.selected_resolution, "Keep original")
     win.fps.setValue(coerce_video_fps(settings.fps))
     win.keep_audio.setChecked(settings.keep_audio)
@@ -38,7 +38,7 @@ def collect_settings(win) -> AppSettings:
         selected_engine_profile=win.engine_profile.currentText(),
         selected_format=win.format.currentText(),
         selected_resolution=win.resolution.currentText().strip() or "Keep original",
-        selected_quality=win.quality.currentText(),
+        selected_quality=_combo_data_value(win.quality),
         selected_ogv_mode=win._ogv_mode_value(),
         keep_audio=win.keep_audio.isChecked(),
         fps=f"{win.fps.value():g}",
@@ -73,6 +73,25 @@ def _set_combo_value(combo: QComboBox, value: str, fallback: str) -> None:
     fallback_idx = combo.findText(fallback)
     if fallback_idx >= 0:
         combo.setCurrentIndex(fallback_idx)
+
+
+def _combo_data_value(combo: QComboBox) -> str:
+    data = combo.currentData()
+    if isinstance(data, str) and data.strip():
+        return data
+    return combo.currentText().strip()
+
+
+def _set_combo_data_value(combo: QComboBox, value: str, fallback: str) -> None:
+    idx = combo.findData(value)
+    if idx >= 0:
+        combo.setCurrentIndex(idx)
+        return
+    fallback_idx = combo.findData(fallback)
+    if fallback_idx >= 0:
+        combo.setCurrentIndex(fallback_idx)
+        return
+    _set_combo_value(combo, value, fallback)
 
 
 def _set_editable_combo_value(combo: QComboBox, value: str, fallback: str) -> None:
