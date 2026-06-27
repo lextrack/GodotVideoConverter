@@ -37,6 +37,14 @@ OGV_QUALITY_PROFILES = {
 
 OGV_LOOP_GOP = "12"
 OGV_LOOP_MIN_KEYINT = "1"
+KEEP_ORIGINAL_RESOLUTION_VALUES = {
+    "keep original",
+    "keep_original",
+    "original",
+    "mantener original",
+    "conserver l'original",
+    "original beibehalten",
+}
 
 
 @dataclass(slots=True)
@@ -230,15 +238,29 @@ def _parse_resolution(value: str | None) -> tuple[int, int] | None:
     if not value:
         return None
     s = value.strip().lower()
-    if s in {"keep original", "keep_original", "original", "mantener original"}:
+    if s in KEEP_ORIGINAL_RESOLUTION_VALUES:
         return None
     parts = s.split("x")
     if len(parts) != 2:
         return None
     try:
-        return int(parts[0]), int(parts[1])
+        width = int(parts[0])
+        height = int(parts[1])
     except ValueError:
         return None
+    if width <= 0 or height <= 0:
+        return None
+    return width, height
+
+
+def validate_resolution(value: str | None) -> None:
+    if not value:
+        return
+    s = value.strip().lower()
+    if not s or s in KEEP_ORIGINAL_RESOLUTION_VALUES:
+        return
+    if _parse_resolution(value) is None:
+        raise ValueError("output resolution must use WIDTHxHEIGHT, for example 1280x720")
 
 
 def _build_filter_chain(fmt: str, fps: float | None, resolution: str | None, quality: str) -> str | None:
@@ -299,6 +321,7 @@ def convert_video(
     if not src.exists() or not src.is_file():
         raise FileNotFoundError(f"Input file not found: {src.name}")
     _validate_video_fps(options.fps)
+    validate_resolution(options.resolution)
 
     final_out = Path(options.output_file)
     final_out.parent.mkdir(parents=True, exist_ok=True)

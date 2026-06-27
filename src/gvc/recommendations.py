@@ -13,6 +13,12 @@ class _State:
     next_step: list[str] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class RecommendationSections:
+    what_has: tuple[str, ...] = ()
+    next_step: tuple[str, ...] = ()
+
+
 def _gcd(a: int, b: int) -> int:
     while b != 0:
         a, b = b, a % b
@@ -110,14 +116,34 @@ def _append_common_aspect_guidance(s: _State, ar: str) -> None:
         s.what_has.append("Non-standard aspect ratio - May need cropping, padding, or a custom layout")
 
 
-def get_godot_recommendations(
+def _translate_sections(s: _State, language: str) -> RecommendationSections:
+    return RecommendationSections(
+        what_has=tuple(translate_recommendations(item, language) for item in s.what_has),
+        next_step=tuple(translate_recommendations(item, language) for item in s.next_step),
+    )
+
+
+def _format_recommendation_sections(sections: RecommendationSections, language: str, fallback: str) -> str:
+    blocks: list[str] = []
+    if sections.what_has:
+        title = translate_recommendations("WHAT THIS VIDEO HAS", language)
+        blocks.append(title + "\n" + "\n".join(f"- {x}" for x in sections.what_has))
+    if sections.next_step:
+        title = translate_recommendations("RECOMMENDED NEXT STEP", language)
+        blocks.append(title + "\n" + "\n".join(f"- {x}" for x in sections.next_step))
+
+    if not blocks:
+        return translate_recommendations(fallback, language)
+    return "\n\n".join(blocks)
+
+
+def _build_godot_recommendation_state(
     video: VideoInfo,
     keep_audio: bool = True,
     target_format: str = "ogv",
-    language: str = "en",
-) -> str:
+) -> _State:
     if not video.is_valid:
-        return "Invalid video file"
+        return _State(next_step=["Invalid video file"])
 
     s = _State()
 
@@ -226,27 +252,51 @@ def get_godot_recommendations(
     else:
         s.next_step.append("OGV is the format natively supported by Godot")
 
-    blocks: list[str] = []
-    if s.what_has:
-        blocks.append("WHAT THIS VIDEO HAS\n" + "\n".join(f"- {x}" for x in s.what_has))
-    if s.next_step:
-        blocks.append("RECOMMENDED NEXT STEP\n" + "\n".join(f"- {x}" for x in s.next_step))
-
-    if not blocks:
-        return translate_recommendations(
-            "Video looks good for Godot. Use OGV for best compatibility.", language
-        )
-    return translate_recommendations("\n\n".join(blocks), language)
+    return s
 
 
-def get_love2d_recommendations(
+def get_godot_recommendation_sections(
+    video: VideoInfo,
+    keep_audio: bool = True,
+    target_format: str = "ogv",
+    language: str = "en",
+) -> RecommendationSections:
+    return _translate_sections(
+        _build_godot_recommendation_state(
+            video,
+            keep_audio=keep_audio,
+            target_format=target_format,
+        ),
+        language,
+    )
+
+
+def get_godot_recommendations(
     video: VideoInfo,
     keep_audio: bool = True,
     target_format: str = "ogv",
     language: str = "en",
 ) -> str:
+    sections = get_godot_recommendation_sections(
+        video,
+        keep_audio=keep_audio,
+        target_format=target_format,
+        language=language,
+    )
+    return _format_recommendation_sections(
+        sections,
+        language,
+        "Video looks good for Godot. Use OGV for best compatibility.",
+    )
+
+
+def _build_love2d_recommendation_state(
+    video: VideoInfo,
+    keep_audio: bool = True,
+    target_format: str = "ogv",
+) -> _State:
     if not video.is_valid:
-        return "Invalid video file"
+        return _State(next_step=["Invalid video file"])
 
     s = _State()
 
@@ -319,17 +369,42 @@ def get_love2d_recommendations(
     else:
         s.next_step.append("OGV is the main engine-oriented target for Love2D video playback")
 
-    blocks: list[str] = []
-    if s.what_has:
-        blocks.append("WHAT THIS VIDEO HAS\n" + "\n".join(f"- {x}" for x in s.what_has))
-    if s.next_step:
-        blocks.append("RECOMMENDED NEXT STEP\n" + "\n".join(f"- {x}" for x in s.next_step))
+    return s
 
-    if not blocks:
-        return translate_recommendations(
-            "Video looks good for Love2D. Use OGV for best compatibility.", language
-        )
-    return translate_recommendations("\n\n".join(blocks), language)
+
+def get_love2d_recommendation_sections(
+    video: VideoInfo,
+    keep_audio: bool = True,
+    target_format: str = "ogv",
+    language: str = "en",
+) -> RecommendationSections:
+    return _translate_sections(
+        _build_love2d_recommendation_state(
+            video,
+            keep_audio=keep_audio,
+            target_format=target_format,
+        ),
+        language,
+    )
+
+
+def get_love2d_recommendations(
+    video: VideoInfo,
+    keep_audio: bool = True,
+    target_format: str = "ogv",
+    language: str = "en",
+) -> str:
+    sections = get_love2d_recommendation_sections(
+        video,
+        keep_audio=keep_audio,
+        target_format=target_format,
+        language=language,
+    )
+    return _format_recommendation_sections(
+        sections,
+        language,
+        "Video looks good for Love2D. Use OGV for best compatibility.",
+    )
 
 
 def get_engine_recommendations(
@@ -347,6 +422,28 @@ def get_engine_recommendations(
             language=language,
         )
     return get_godot_recommendations(
+        video,
+        keep_audio=keep_audio,
+        target_format=target_format,
+        language=language,
+    )
+
+
+def get_engine_recommendation_sections(
+    video: VideoInfo,
+    engine_profile: str,
+    keep_audio: bool = True,
+    target_format: str = "ogv",
+    language: str = "en",
+) -> RecommendationSections:
+    if normalize_engine_profile(engine_profile) == ENGINE_PROFILE_LOVE2D:
+        return get_love2d_recommendation_sections(
+            video,
+            keep_audio=keep_audio,
+            target_format=target_format,
+            language=language,
+        )
+    return get_godot_recommendation_sections(
         video,
         keep_audio=keep_audio,
         target_format=target_format,

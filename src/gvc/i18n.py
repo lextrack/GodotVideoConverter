@@ -53,6 +53,7 @@ UI_TEXT = {
         "error_input_file_not_found": "Input file not found: {name}",
         "error_video_fps_range": "Video FPS must be between 1 and 60.",
         "error_atlas_fps_range": "Atlas FPS must be between 1 and 30.",
+        "error_resolution_format": "Output resolution must use WIDTHxHEIGHT, for example 1280x720.",
         "error_invalid_video_file_runtime": "Invalid video file.",
         "error_ffmpeg_failed": "FFmpeg failed: {detail}",
         "operation_in_progress": "Operation in progress",
@@ -74,6 +75,8 @@ UI_TEXT = {
         "no_files_title": "No files",
         "no_files_text": "Add at least one video file",
         "invalid_fps_title": "Invalid FPS",
+        "invalid_resolution_title": "Invalid resolution",
+        "invalid_resolution_text": "Use WIDTHxHEIGHT, for example 1280x720. Current value: {value}",
         "added_n_files": "Added {added} file(s)",
         "added_rejected": "Added {added} file(s), rejected {rejected} invalid file(s)",
         "no_valid_files_added": "No valid video files added",
@@ -215,6 +218,7 @@ UI_TEXT = {
         "error_input_file_not_found": "No se encontró el archivo de entrada: {name}",
         "error_video_fps_range": "Los FPS de video deben estar entre 1 y 60.",
         "error_atlas_fps_range": "Los FPS del atlas deben estar entre 1 y 30.",
+        "error_resolution_format": "La resolución de salida debe usar ANCHOxALTO, por ejemplo 1280x720.",
         "error_invalid_video_file_runtime": "Archivo de video inválido.",
         "error_ffmpeg_failed": "FFmpeg falló: {detail}",
         "operation_in_progress": "Operación en progreso",
@@ -236,6 +240,8 @@ UI_TEXT = {
         "no_files_title": "Sin archivos",
         "no_files_text": "Agrega al menos un archivo de video",
         "invalid_fps_title": "FPS inválido",
+        "invalid_resolution_title": "Resolución inválida",
+        "invalid_resolution_text": "Usa ANCHOxALTO, por ejemplo 1280x720. Valor actual: {value}",
         "added_n_files": "Se agregaron {added} archivo(s)",
         "added_rejected": "Se agregaron {added} archivo(s), se rechazaron {rejected} inválidos",
         "no_valid_files_added": "No se agregaron archivos de video válidos",
@@ -377,6 +383,7 @@ UI_TEXT = {
         "error_input_file_not_found": "Fichier d'entrée introuvable : {name}",
         "error_video_fps_range": "Les FPS vidéo doivent être compris entre 1 et 60.",
         "error_atlas_fps_range": "Les FPS de l'atlas doivent être compris entre 1 et 30.",
+        "error_resolution_format": "La résolution de sortie doit utiliser LARGEURxHAUTEUR, par exemple 1280x720.",
         "error_invalid_video_file_runtime": "Fichier vidéo invalide.",
         "error_ffmpeg_failed": "FFmpeg a échoué : {detail}",
         "operation_in_progress": "Opération en cours",
@@ -398,6 +405,8 @@ UI_TEXT = {
         "no_files_title": "Aucun fichier",
         "no_files_text": "Ajoutez au moins un fichier vidéo",
         "invalid_fps_title": "FPS invalide",
+        "invalid_resolution_title": "Résolution invalide",
+        "invalid_resolution_text": "Utilisez LARGEURxHAUTEUR, par exemple 1280x720. Valeur actuelle : {value}",
         "added_n_files": "{added} fichier(s) ajouté(s)",
         "added_rejected": "{added} fichier(s) ajouté(s), {rejected} fichier(s) invalide(s) rejeté(s)",
         "no_valid_files_added": "Aucun fichier vidéo valide ajouté",
@@ -539,6 +548,7 @@ UI_TEXT = {
         "error_input_file_not_found": "Eingabedatei nicht gefunden: {name}",
         "error_video_fps_range": "Video-FPS müssen zwischen 1 und 60 liegen.",
         "error_atlas_fps_range": "Atlas-FPS müssen zwischen 1 und 30 liegen.",
+        "error_resolution_format": "Die Ausgabeauflösung muss BREITExHÖHE verwenden, zum Beispiel 1280x720.",
         "error_invalid_video_file_runtime": "Ungültige Videodatei.",
         "error_ffmpeg_failed": "FFmpeg fehlgeschlagen: {detail}",
         "operation_in_progress": "Vorgang läuft",
@@ -560,6 +570,8 @@ UI_TEXT = {
         "no_files_title": "Keine Dateien",
         "no_files_text": "Füge mindestens eine Videodatei hinzu",
         "invalid_fps_title": "Ungültige FPS",
+        "invalid_resolution_title": "Ungültige Auflösung",
+        "invalid_resolution_text": "Verwende BREITExHÖHE, zum Beispiel 1280x720. Aktueller Wert: {value}",
         "added_n_files": "{added} Datei(en) hinzugefügt",
         "added_rejected": "{added} Datei(en) hinzugefügt, {rejected} ungültige Datei(en) verworfen",
         "no_valid_files_added": "Keine gültigen Videodateien hinzugefügt",
@@ -1176,6 +1188,9 @@ def translate_runtime_error(message: str, language: str) -> str:
 
     if text == "atlas fps must be between 1 and 30":
         return ui_text(language, "error_atlas_fps_range")
+
+    if text == "output resolution must use WIDTHxHEIGHT, for example 1280x720":
+        return ui_text(language, "error_resolution_format")
 
     if text == "invalid video file":
         return ui_text(language, "error_invalid_video_file_runtime")
