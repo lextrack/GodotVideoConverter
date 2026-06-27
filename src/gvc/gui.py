@@ -15,10 +15,20 @@ from PySide6.QtGui import (
     QIcon,
     QPalette,
 )
-from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QFileDialog, QLabel, QMainWindow, QMessageBox, QVBoxLayout
+from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
 
 from gvc.batch import AtlasBatchConfig, BatchPaths, ConvertBatchConfig, ProbeCache, convert_batch, generate_atlas_batch
 from gvc.convert import ENGINE_PROFILES, ogv_modes_for_profile, validate_resolution
+from gvc.dialogs import (
+    confirm_cancel_running,
+    show_about,
+    show_ffmpeg_not_found,
+    show_invalid_fps,
+    show_invalid_resolution,
+    show_no_files,
+    show_open_output_failed,
+    show_output_error,
+)
 from gvc.experience import ExperienceContext, guidance_html, preset_summary, summary_html
 from gvc.file_selection import (
     add_files_to_list,
@@ -204,7 +214,7 @@ class MainWindow(QMainWindow):
             return output
         except OSError as exc:
             if notify:
-                QMessageBox.warning(self, self._tr("open_output_folder"), str(exc))
+                show_output_error(self, self._tr, str(exc))
             return None
 
     def _ensure_output_directory_silent(self) -> None:
@@ -301,12 +311,7 @@ class MainWindow(QMainWindow):
             if self._close_after_cancel:
                 event.ignore()
                 return
-            choice = QMessageBox.question(
-                self,
-                self._tr("operation_in_progress"),
-                self._tr("operation_in_progress_text"),
-            )
-            if choice != QMessageBox.StandardButton.Yes:
+            if not confirm_cancel_running(self, self._tr):
                 event.ignore()
                 return
             self._close_after_cancel = True
@@ -468,11 +473,7 @@ class MainWindow(QMainWindow):
         try:
             validate_resolution(resolution)
         except ValueError:
-            QMessageBox.warning(
-                self,
-                self._tr("invalid_resolution_title"),
-                self._tr("invalid_resolution_text", value=self.resolution.currentText().strip()),
-            )
+            show_invalid_resolution(self, self._tr, self.resolution.currentText().strip())
             return None
         return resolution
 
@@ -612,26 +613,10 @@ class MainWindow(QMainWindow):
             return
         opened = QDesktopServices.openUrl(QUrl.fromLocalFile(str(output.resolve())))
         if not opened:
-            QMessageBox.warning(self, self._tr("open_output_folder"), self._tr("open_output_folder_error"))
+            show_open_output_failed(self, self._tr)
 
     def on_about(self):
-        dialog = QDialog(self)
-        dialog.setWindowTitle(self._tr("about"))
-        dialog.resize(520, 260)
-
-        layout = QVBoxLayout(dialog)
-        title = QLabel(self._tr("window_title"))
-        body = QLabel(self._tr("about_text", version=__version__))
-        body.setWordWrap(True)
-
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok, parent=dialog)
-        buttons.accepted.connect(dialog.accept)
-
-        layout.addWidget(title)
-        layout.addWidget(body, 1)
-        layout.addWidget(buttons)
-
-        dialog.exec()
+        show_about(self, self._tr, __version__)
 
     def on_cancel(self):
         if self._cancel_event:
@@ -641,13 +626,13 @@ class MainWindow(QMainWindow):
     def on_convert(self):
         inputs = self._selected_inputs()
         if not inputs:
-            QMessageBox.warning(self, self._tr("no_files_title"), self._tr("no_files_text"))
+            show_no_files(self, self._tr)
             return
 
         try:
             fps_val = float(self.fps.value())
         except ValueError as exc:
-            QMessageBox.warning(self, self._tr("invalid_fps_title"), str(exc))
+            show_invalid_fps(self, self._tr, str(exc))
             return
 
         output = self._ensure_output_directory(notify=True)
@@ -688,7 +673,7 @@ class MainWindow(QMainWindow):
     def on_atlas(self):
         inputs = self._selected_inputs()
         if not inputs:
-            QMessageBox.warning(self, self._tr("no_files_title"), self._tr("no_files_text"))
+            show_no_files(self, self._tr)
             return
 
         output = self._ensure_output_directory(notify=True)
@@ -723,8 +708,7 @@ def main() -> None:
         win = MainWindow()
     except FFmpegNotFoundError as exc:
         lang = load_settings().selected_language
-        title = ui_text(lang, "ffmpeg_not_found")
-        QMessageBox.critical(None, title, str(exc))
+        show_ffmpeg_not_found(lang, str(exc))
         raise SystemExit(2)
 
     win.show()
