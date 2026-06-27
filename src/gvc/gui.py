@@ -143,6 +143,7 @@ class MainWindow(QMainWindow):
         self._progress_started = False
         self._progress_error_state = False
         self._close_after_cancel = False
+        self._info_panel_visible = True
         self._output_validation_timer = QTimer(self)
         self._output_validation_timer.setInterval(4000)
         self._output_validation_timer.timeout.connect(self._ensure_output_directory_silent)
@@ -152,6 +153,7 @@ class MainWindow(QMainWindow):
         self.btn_add.clicked.connect(self.on_add_files)
         self.btn_remove.clicked.connect(self.on_remove_selected)
         self.btn_clear.clicked.connect(self.on_clear)
+        self.btn_toggle_info.clicked.connect(self.on_toggle_info_panel)
         self.files_delete_shortcut.activated.connect(self.on_remove_selected)
         self.btn_output_change.clicked.connect(self.on_output_dir)
         self.btn_output_open.clicked.connect(self.on_open_output_dir)
@@ -183,12 +185,19 @@ class MainWindow(QMainWindow):
         self.ogv_mode.currentTextChanged.connect(self._refresh_experience_panels)
         self.audio_format.currentTextChanged.connect(self.save_ui_settings)
         self.audio_format.currentTextChanged.connect(self._update_audio_bitrate_state)
+        self.audio_format.currentTextChanged.connect(self._refresh_experience_panels)
         self.audio_bitrate.currentTextChanged.connect(self.save_ui_settings)
+        self.audio_bitrate.currentTextChanged.connect(self._refresh_experience_panels)
         self.audio_sample_rate.currentTextChanged.connect(self.save_ui_settings)
+        self.audio_sample_rate.currentTextChanged.connect(self._refresh_experience_panels)
         self.audio_channels.currentTextChanged.connect(self.save_ui_settings)
+        self.audio_channels.currentTextChanged.connect(self._refresh_experience_panels)
         self.atlas_fps.valueChanged.connect(self.save_ui_settings)
+        self.atlas_fps.valueChanged.connect(self._refresh_experience_panels)
         self.atlas_mode.currentTextChanged.connect(self.save_ui_settings)
+        self.atlas_mode.currentTextChanged.connect(self._refresh_experience_panels)
         self.atlas_res.currentTextChanged.connect(self.save_ui_settings)
+        self.atlas_res.currentTextChanged.connect(self._refresh_experience_panels)
 
         apply_saved_settings(self)
         self._ensure_output_directory_silent()
@@ -474,6 +483,65 @@ class MainWindow(QMainWindow):
         self.audio_video_source_note.setText(f"<p><b>{title}</b><br>{body}</p><p><b>{name}</b></p>")
         self.audio_video_source_note.setVisible(True)
 
+    def _audio_output_preview_name(self, src: str | None) -> str:
+        stem = Path(src).stem if src else "audio"
+        suffix = {
+            "ogg": ".ogg",
+            "mp3": ".mp3",
+            "aac": ".aac",
+            "wav": ".wav",
+        }.get(self._audio_format_value(), ".ogg")
+        return f"{stem}_audio{suffix}"
+
+    def _right_panel_empty_state(self) -> None:
+        tab = self.tabs.currentIndex()
+        body_key = {
+            0: "empty_video_body",
+            1: "empty_audio_body",
+            2: "empty_atlas_body",
+        }.get(tab, "empty_video_body")
+        self.summary_text.setHtml(
+            f"<h3>{html.escape(self._tr('empty_state_title'))}</h3>"
+            f"<p>{html.escape(self._tr(body_key))}</p>"
+        )
+        self.guidance_text.setHtml(f"<p>{html.escape(self._tr('empty_state_formats'))}</p>")
+
+    def _refresh_audio_right_panel(self, src: str) -> None:
+        source_label = "audio_summary_video_source" if self._selected_source_is_video() else "audio_summary_audio_source"
+        output = Path(self.output.text().strip() or "output") / self._audio_output_preview_name(src)
+        items = [
+            f"{self._tr('summary_target')}: {self._audio_format_value()}",
+            f"{self._tr('audio_bitrate')}: {self._audio_bitrate_value() if self._audio_format_value() != 'wav' else self._tr('audio_bitrate_not_used')}",
+            f"{self._tr('audio_sample_rate')}: {self.audio_sample_rate.currentText()}",
+            f"{self._tr('audio_channels')}: {self.audio_channels.currentText()}",
+            f"{self._tr('summary_output_file')}: {output}",
+        ]
+        self.summary_text.setHtml(
+            f"<h3>{html.escape(self._tr('audio_summary_title'))}</h3>"
+            f"<p><b>{html.escape(Path(src).name)}</b></p>"
+            f"<p>{html.escape(self._tr(source_label))}</p>"
+            f"{self._html_list(items)}"
+        )
+        self.guidance_text.clear()
+
+    def _refresh_atlas_right_panel(self, src: str) -> None:
+        output = Path(self.output.text().strip() or "output") / f"{Path(src).stem}_atlas.png"
+        items = [
+            f"{self._tr('atlas_summary_frames')}: {self.atlas_fps.value()}",
+            f"{self._tr('mode')}: {self.atlas_mode.currentText()}",
+            f"{self._tr('atlas_frame_size')}: {self.atlas_res.currentText()}",
+            f"{self._tr('summary_output_file')}: {output}",
+        ]
+        self.summary_text.setHtml(
+            f"<h3>{html.escape(self._tr('atlas_summary_title'))}</h3>"
+            f"<p><b>{html.escape(Path(src).name)}</b></p>"
+            f"{self._html_list(items)}"
+        )
+        self.guidance_text.setHtml(f"<p>{html.escape(self._tr('atlas_summary_body'))}</p>")
+
+    def _html_list(self, items: list[str]) -> str:
+        return "<ul>" + "".join(f"<li>{html.escape(item)}</li>" for item in items) + "</ul>"
+
     def _selected_video_info(self):
         if self.tabs.currentIndex() == 1:
             return None
@@ -509,6 +577,12 @@ class MainWindow(QMainWindow):
         self.preset_title.setText(f"<b>{html.escape(title)}</b>")
         self.preset_body.setText(f"<p>{html.escape(body)}</p>")
         src = self._selected_primary_path()
+        if not src:
+            self._right_panel_empty_state()
+            return
+        if self.tabs.currentIndex() == 1:
+            self._refresh_audio_right_panel(src)
+            return
         if src and self._is_audio_only_source(src):
             name = Path(src).name
             self.preset_title.setText(f"<b>{html.escape(self._tr('audio_file_selected_title'))}</b>")
@@ -519,6 +593,9 @@ class MainWindow(QMainWindow):
                 f"<p>{html.escape(self._tr('audio_file_selected_body'))}</p>"
             )
             self.guidance_text.clear()
+            return
+        if self.tabs.currentIndex() == 2:
+            self._refresh_atlas_right_panel(src)
             return
         if invalid_video_name:
             self.summary_text.setHtml(summary_html(ctx, None, self._tr))
@@ -575,6 +652,7 @@ class MainWindow(QMainWindow):
         self.btn_add.setEnabled(not busy)
         self.btn_remove.setEnabled(not busy)
         self.btn_clear.setEnabled(not busy)
+        self.btn_toggle_info.setEnabled(not busy)
         self.output.setEnabled(not busy)
         self.btn_output_change.setEnabled(not busy)
         self.btn_output_open.setEnabled(True)
@@ -585,9 +663,12 @@ class MainWindow(QMainWindow):
         self.quality.setEnabled(not busy)
         self.resolution.setEnabled(not busy)
         self.fps.setEnabled(not busy)
-        self.engine_profile.setEnabled(not busy)
+        is_ogv = self.format.currentText().strip().lower() == "ogv"
+        self.engine_profile_label.setEnabled(not busy and is_ogv)
+        self.engine_profile.setEnabled(not busy and is_ogv)
         self.keep_audio.setEnabled(not busy)
-        self.ogv_mode.setEnabled(not busy and self.format.currentText().strip().lower() == "ogv")
+        self.ogv_mode_label.setEnabled(not busy and is_ogv)
+        self.ogv_mode.setEnabled(not busy and is_ogv)
         self.audio_format.setEnabled(not busy)
         self.audio_bitrate.setEnabled(not busy and self._audio_format_value() != "wav")
         self.audio_bitrate_label.setEnabled(not busy and self._audio_format_value() != "wav")
@@ -606,8 +687,30 @@ class MainWindow(QMainWindow):
         else:
             self.btn_action.setText(self._tr("action_atlas"))
 
+    def _set_info_panel_visible(self, visible: bool, *, save: bool = True) -> None:
+        self._info_panel_visible = visible
+        self.right_panel.setVisible(visible)
+        self.btn_toggle_info.blockSignals(True)
+        self.btn_toggle_info.setChecked(not visible)
+        self.btn_toggle_info.blockSignals(False)
+        self._update_info_toggle_button()
+        if visible:
+            self.content_splitter.setSizes([540, 940])
+        else:
+            self.content_splitter.setSizes([1, 0])
+        if save:
+            self.save_ui_settings()
+
+    def _update_info_toggle_button(self) -> None:
+        if self._info_panel_visible:
+            self.btn_toggle_info.setText(self._tr("hide_info_panel"))
+        else:
+            self.btn_toggle_info.setText(self._tr("show_info_panel"))
+
     def _update_ogv_mode_state(self) -> None:
         is_ogv = self.format.currentText().strip().lower() == "ogv"
+        self.engine_profile_label.setEnabled(is_ogv)
+        self.engine_profile.setEnabled(is_ogv)
         self.ogv_mode_label.setEnabled(is_ogv)
         self.ogv_mode.setEnabled(is_ogv)
 
@@ -701,6 +804,9 @@ class MainWindow(QMainWindow):
         clear_files(self.files, self._probe_cache)
         self.refresh_selected_info()
         self._set_status_key("list_cleared")
+
+    def on_toggle_info_panel(self, _checked: bool = False):
+        self._set_info_panel_visible(not self._info_panel_visible)
 
     def on_output_dir(self):
         folder = QFileDialog.getExistingDirectory(self, self._tr("select_output_folder"), self.output.text())

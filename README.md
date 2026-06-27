@@ -197,14 +197,3 @@ Copy `ffmpeg.exe` and `ffprobe.exe` into `bin/`, then run:
 The script installs the required build dependencies and runs `PyInstaller` with `gvc.spec`.
 Output is generated in `dist/gvc/`.
 Run `dist/gvc/gvc.exe`.
-
-## Project Structure
-
-- `src/gvc/gui.py`: PySide6 desktop interface
-- `src/gvc/convert.py`: video conversion presets and FFmpeg arguments
-- `src/gvc/atlas.py`: atlas generation
-- `src/gvc/probe.py`: FFprobe metadata reading
-- `src/gvc/recommendations.py`: playback recommendations
-- `src/gvc/ffmpeg_paths.py`: FFmpeg path resolution
-- `src/gvc/settings.py`: persisted UI settings
-- `src/gvc/i18n.py`: localization

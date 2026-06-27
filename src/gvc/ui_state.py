@@ -34,6 +34,7 @@ def apply_settings(win, settings: AppSettings) -> None:
     win.atlas_fps.setValue(max(1, min(30, settings.atlas_fps or 5)))
     win._reload_atlas_mode_options(settings.selected_atlas_mode)
     win._reload_atlas_resolution_options(settings.selected_atlas_resolution)
+    win._set_info_panel_visible(bool(settings.info_panel_visible), save=False)
 
 
 def collect_settings(win) -> AppSettings:
@@ -54,6 +55,7 @@ def collect_settings(win) -> AppSettings:
         atlas_fps=win.atlas_fps.value(),
         selected_atlas_mode=win._atlas_mode_value(),
         selected_atlas_resolution=win._atlas_resolution_value(),
+        info_panel_visible=win._info_panel_visible,
     )
 
 

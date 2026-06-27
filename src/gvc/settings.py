@@ -24,6 +24,7 @@ class AppSettings:
     atlas_fps: int = 5
     selected_atlas_mode: str = "grid"
     selected_atlas_resolution: str = "Medium"
+    info_panel_visible: bool = True
 
 
 def _config_dir() -> Path:
