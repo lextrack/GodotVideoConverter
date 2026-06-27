@@ -65,6 +65,13 @@ def _probe_duration(fmt: dict, stream: dict) -> float:
     return _coerce_float(stream.get("duration"))
 
 
+def _is_attached_picture(stream: dict) -> bool:
+    disposition = stream.get("disposition") or {}
+    if not isinstance(disposition, dict):
+        return False
+    return bool(disposition.get("attached_pic") or disposition.get("still_image"))
+
+
 def probe_video(ffprobe_path: str, file_path: str) -> VideoInfo:
     cmd = [
         ffprobe_path,
@@ -114,6 +121,8 @@ def probe_video(ffprobe_path: str, file_path: str) -> VideoInfo:
             continue
         codec_type = stream.get("codec_type", "")
         if codec_type == "video":
+            if _is_attached_picture(stream):
+                continue
             info.width = _coerce_int(stream.get("width"))
             info.height = _coerce_int(stream.get("height"))
             info.video_codec = _coerce_text(stream.get("codec_name"))

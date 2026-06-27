@@ -26,6 +26,11 @@ def apply_settings(win, settings: AppSettings) -> None:
     win.fps.setValue(coerce_video_fps(settings.fps))
     win.keep_audio.setChecked(settings.keep_audio)
     win._reload_ogv_mode_options(win.engine_profile.currentText(), settings.selected_ogv_mode)
+    _set_combo_data_value(win.audio_format, settings.selected_audio_format, "ogg")
+    _set_combo_data_value(win.audio_bitrate, settings.selected_audio_bitrate, "160k")
+    _set_combo_data_value(win.audio_sample_rate, settings.selected_audio_sample_rate, "44100")
+    _set_combo_data_value(win.audio_channels, settings.selected_audio_channels, "stereo")
+    win._update_audio_bitrate_state()
     win.atlas_fps.setValue(max(1, min(30, settings.atlas_fps or 5)))
     win._reload_atlas_mode_options(settings.selected_atlas_mode)
     win._reload_atlas_resolution_options(settings.selected_atlas_resolution)
@@ -42,6 +47,10 @@ def collect_settings(win) -> AppSettings:
         selected_ogv_mode=win._ogv_mode_value(),
         keep_audio=win.keep_audio.isChecked(),
         fps=f"{win.fps.value():g}",
+        selected_audio_format=win._audio_format_value(),
+        selected_audio_bitrate=win._audio_bitrate_value(),
+        selected_audio_sample_rate=win._audio_sample_rate_value(),
+        selected_audio_channels=win._audio_channels_value(),
         atlas_fps=win.atlas_fps.value(),
         selected_atlas_mode=win._atlas_mode_value(),
         selected_atlas_resolution=win._atlas_resolution_value(),

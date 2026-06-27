@@ -17,6 +17,10 @@ class AppSettings:
     selected_ogv_mode: str = "Official Godot"
     keep_audio: bool = False
     fps: str = "30"
+    selected_audio_format: str = "ogg"
+    selected_audio_bitrate: str = "160k"
+    selected_audio_sample_rate: str = "44100"
+    selected_audio_channels: str = "stereo"
     atlas_fps: int = 5
     selected_atlas_mode: str = "grid"
     selected_atlas_resolution: str = "Medium"

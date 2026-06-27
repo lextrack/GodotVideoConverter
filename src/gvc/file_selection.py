@@ -6,6 +6,17 @@ from pathlib import Path
 from PySide6.QtWidgets import QListWidget
 
 
+AUDIO_EXTENSIONS = {
+    ".aac",
+    ".aif",
+    ".aiff",
+    ".flac",
+    ".m4a",
+    ".mp3",
+    ".opus",
+    ".wav",
+}
+
 VIDEO_EXTENSIONS = {
     ".mp4",
     ".m4v",
@@ -21,7 +32,7 @@ VIDEO_EXTENSIONS = {
     ".mpeg",
     ".3gp",
     ".gif",
-}
+} | AUDIO_EXTENSIONS
 
 
 @dataclass(frozen=True, slots=True)

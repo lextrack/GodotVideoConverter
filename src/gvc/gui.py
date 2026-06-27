@@ -17,7 +17,16 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
 
-from gvc.batch import AtlasBatchConfig, BatchPaths, ConvertBatchConfig, ProbeCache, convert_batch, generate_atlas_batch
+from gvc.batch import (
+    AtlasBatchConfig,
+    AudioBatchConfig,
+    BatchPaths,
+    ConvertBatchConfig,
+    ProbeCache,
+    convert_audio_batch,
+    convert_batch,
+    generate_atlas_batch,
+)
 from gvc.convert import ENGINE_PROFILES, ogv_modes_for_profile, validate_resolution
 from gvc.dialogs import (
     confirm_cancel_running,
@@ -31,6 +40,7 @@ from gvc.dialogs import (
 )
 from gvc.experience import ExperienceContext, guidance_html, preset_summary, summary_html
 from gvc.file_selection import (
+    AUDIO_EXTENSIONS,
     add_files_to_list,
     clear_files,
     ensure_initial_selection,
@@ -149,6 +159,7 @@ class MainWindow(QMainWindow):
         self.btn_action.clicked.connect(self.on_action)
         self.btn_cancel.clicked.connect(self.on_cancel)
         self.tabs.currentChanged.connect(self._update_action_button)
+        self.tabs.currentChanged.connect(lambda _index: self.refresh_selected_info())
         self.language.currentTextChanged.connect(self.on_language_changed)
 
         self.files.itemSelectionChanged.connect(self.refresh_selected_info)
@@ -170,6 +181,11 @@ class MainWindow(QMainWindow):
         self.keep_audio.toggled.connect(self.refresh_selected_info)
         self.ogv_mode.currentTextChanged.connect(self.save_ui_settings)
         self.ogv_mode.currentTextChanged.connect(self._refresh_experience_panels)
+        self.audio_format.currentTextChanged.connect(self.save_ui_settings)
+        self.audio_format.currentTextChanged.connect(self._update_audio_bitrate_state)
+        self.audio_bitrate.currentTextChanged.connect(self.save_ui_settings)
+        self.audio_sample_rate.currentTextChanged.connect(self.save_ui_settings)
+        self.audio_channels.currentTextChanged.connect(self.save_ui_settings)
         self.atlas_fps.valueChanged.connect(self.save_ui_settings)
         self.atlas_mode.currentTextChanged.connect(self.save_ui_settings)
         self.atlas_res.currentTextChanged.connect(self.save_ui_settings)
@@ -179,6 +195,7 @@ class MainWindow(QMainWindow):
         self._apply_language()
         self._update_action_button()
         self._update_ogv_mode_state()
+        self._update_audio_bitrate_state()
         self._output_validation_timer.start()
 
     def _on_worker_done(self, ok: bool) -> None:
@@ -344,6 +361,25 @@ class MainWindow(QMainWindow):
             return data
         return self.quality.currentText().strip().lower()
 
+    def _audio_format_value(self) -> str:
+        return self._combo_data_value(self.audio_format, "ogg")
+
+    def _audio_bitrate_value(self) -> str:
+        return self._combo_data_value(self.audio_bitrate, "160k")
+
+    def _audio_sample_rate_value(self) -> str:
+        return self._combo_data_value(self.audio_sample_rate, "44100")
+
+    def _audio_channels_value(self) -> str:
+        return self._combo_data_value(self.audio_channels, "stereo")
+
+    def _combo_data_value(self, combo, fallback: str) -> str:
+        data = combo.currentData()
+        if isinstance(data, str) and data.strip():
+            return data
+        text = combo.currentText().strip()
+        return text or fallback
+
     def _ogv_mode_title_key(self, mode: str) -> str:
         mode_key = (mode or "").strip().lower()
         return {
@@ -408,7 +444,39 @@ class MainWindow(QMainWindow):
     def _selected_primary_path(self) -> str | None:
         return selected_primary_path(self.files)
 
+    def _is_audio_only_source(self, src: str) -> bool:
+        if Path(src).suffix.lower() in AUDIO_EXTENSIONS:
+            return True
+        try:
+            info = self._cached_probe(src)
+        except Exception:
+            return False
+        return bool(info.has_audio and info.width <= 0 and info.height <= 0)
+
+    def _selected_source_is_video(self) -> bool:
+        src = self._selected_primary_path()
+        if not src or self._is_audio_only_source(src):
+            return False
+        try:
+            return bool(self._cached_probe(src).is_valid)
+        except Exception:
+            return False
+
+    def _refresh_audio_source_notice(self) -> None:
+        src = self._selected_primary_path()
+        if not src or not self._selected_source_is_video():
+            self.audio_video_source_note.clear()
+            self.audio_video_source_note.setVisible(False)
+            return
+        name = html.escape(Path(src).name)
+        title = html.escape(self._tr("audio_video_source_title"))
+        body = html.escape(self._tr("audio_video_source_body"))
+        self.audio_video_source_note.setText(f"<p><b>{title}</b><br>{body}</p><p><b>{name}</b></p>")
+        self.audio_video_source_note.setVisible(True)
+
     def _selected_video_info(self):
+        if self.tabs.currentIndex() == 1:
+            return None
         src = self._selected_primary_path()
         if not src:
             return None
@@ -433,12 +501,25 @@ class MainWindow(QMainWindow):
         )
 
     def _refresh_experience_panels(self, *_args, invalid_video_name: str | None = None) -> None:
+        self._refresh_audio_source_notice()
         ctx = self._experience_context()
         title, body = preset_summary(ctx, self._tr)
         self.format_hint.clear()
         self.preset_group.setTitle(self._tr("preset_group_title"))
         self.preset_title.setText(f"<b>{html.escape(title)}</b>")
         self.preset_body.setText(f"<p>{html.escape(body)}</p>")
+        src = self._selected_primary_path()
+        if src and self._is_audio_only_source(src):
+            name = Path(src).name
+            self.preset_title.setText(f"<b>{html.escape(self._tr('audio_file_selected_title'))}</b>")
+            self.preset_body.setText(f"<p>{html.escape(self._tr('audio_file_selected_body'))}</p>")
+            self.summary_text.setHtml(
+                f"<h3>{html.escape(self._tr('audio_file_selected_title'))}</h3>"
+                f"<p><b>{html.escape(name)}</b></p>"
+                f"<p>{html.escape(self._tr('audio_file_selected_body'))}</p>"
+            )
+            self.guidance_text.clear()
+            return
         if invalid_video_name:
             self.summary_text.setHtml(summary_html(ctx, None, self._tr))
             self.guidance_text.setHtml(
@@ -507,6 +588,11 @@ class MainWindow(QMainWindow):
         self.engine_profile.setEnabled(not busy)
         self.keep_audio.setEnabled(not busy)
         self.ogv_mode.setEnabled(not busy and self.format.currentText().strip().lower() == "ogv")
+        self.audio_format.setEnabled(not busy)
+        self.audio_bitrate.setEnabled(not busy and self._audio_format_value() != "wav")
+        self.audio_bitrate_label.setEnabled(not busy and self._audio_format_value() != "wav")
+        self.audio_sample_rate.setEnabled(not busy)
+        self.audio_channels.setEnabled(not busy)
         self.atlas_fps.setEnabled(not busy)
         self.atlas_mode.setEnabled(not busy)
         self.atlas_res.setEnabled(not busy)
@@ -515,6 +601,8 @@ class MainWindow(QMainWindow):
     def _update_action_button(self) -> None:
         if self.tabs.currentIndex() == 0:
             self.btn_action.setText(self._tr("action_convert"))
+        elif self.tabs.currentIndex() == 1:
+            self.btn_action.setText(self._tr("action_audio"))
         else:
             self.btn_action.setText(self._tr("action_atlas"))
 
@@ -522,6 +610,11 @@ class MainWindow(QMainWindow):
         is_ogv = self.format.currentText().strip().lower() == "ogv"
         self.ogv_mode_label.setEnabled(is_ogv)
         self.ogv_mode.setEnabled(is_ogv)
+
+    def _update_audio_bitrate_state(self) -> None:
+        has_bitrate = self._audio_format_value() != "wav"
+        self.audio_bitrate_label.setEnabled(has_bitrate)
+        self.audio_bitrate.setEnabled(has_bitrate)
 
     def _reload_ogv_mode_options(self, engine_profile: str, selected: str | None = None) -> None:
         current = (selected if selected is not None else self._ogv_mode_value()).strip()
@@ -542,6 +635,8 @@ class MainWindow(QMainWindow):
     def on_action(self):
         if self.tabs.currentIndex() == 0:
             self.on_convert()
+        elif self.tabs.currentIndex() == 1:
+            self.on_audio()
         else:
             self.on_atlas()
 
@@ -578,9 +673,15 @@ class MainWindow(QMainWindow):
         if not src:
             self._refresh_experience_panels()
             return
+        if self.tabs.currentIndex() == 1:
+            self._refresh_experience_panels()
+            return
 
         try:
             info = self._cached_probe(src)
+            if self._is_audio_only_source(src):
+                self._refresh_experience_panels()
+                return
             if not info.is_valid:
                 self._refresh_experience_panels(invalid_video_name=Path(src).name)
                 return
@@ -663,6 +764,36 @@ class MainWindow(QMainWindow):
                 paths,
                 config,
                 probe_cache=probe_cache,
+                cancel_event=cancel_event,
+                progress_cb=progress_cb,
+                status_cb=status_cb,
+            )
+
+        self._start_worker(_run)
+
+    def on_audio(self):
+        inputs = self._selected_inputs()
+        if not inputs:
+            show_no_files(self, self._tr)
+            return
+
+        output = self._ensure_output_directory(notify=True)
+        if output is None:
+            return
+
+        paths = BatchPaths(ffmpeg=str(self.ffmpeg), ffprobe=str(self.ffprobe), output_dir=output)
+        config = AudioBatchConfig(
+            fmt=self._audio_format_value(),
+            bitrate=self._audio_bitrate_value(),
+            sample_rate=self._audio_sample_rate_value(),
+            channels=self._audio_channels_value(),
+        )
+
+        def _run(cancel_event: Event, progress_cb, status_cb):
+            convert_audio_batch(
+                inputs,
+                paths,
+                config,
                 cancel_event=cancel_event,
                 progress_cb=progress_cb,
                 status_cb=status_cb,

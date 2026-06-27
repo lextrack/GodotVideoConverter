@@ -5,6 +5,7 @@ from pathlib import Path
 from threading import Event
 from typing import Callable
 
+from gvc.audio import AudioOptions, audio_extension, convert_audio
 from gvc.atlas import generate_sprite_atlas
 from gvc.convert import ConvertOptions, convert_video
 from gvc.models import VideoInfo
@@ -38,6 +39,14 @@ class AtlasBatchConfig:
     fps: int
     mode: str
     resolution: str
+
+
+@dataclass(frozen=True, slots=True)
+class AudioBatchConfig:
+    fmt: str
+    bitrate: str
+    sample_rate: str
+    channels: str
 
 
 @dataclass(slots=True)
@@ -143,6 +152,46 @@ def generate_atlas_batch(
             atlas_resolution=config.resolution,
             cancel_event=cancel_event,
             on_progress=_per_file_progress(idx, total, progress_cb),
+        )
+
+    if progress_cb:
+        progress_cb(100)
+
+
+def convert_audio_batch(
+    inputs: list[str],
+    paths: BatchPaths,
+    config: AudioBatchConfig,
+    *,
+    cancel_event: Event | None = None,
+    progress_cb: ProgressCallback | None = None,
+    status_cb: StatusCallback | None = None,
+) -> None:
+    total = len(inputs)
+    ext = audio_extension(config.fmt)
+
+    for idx, src in enumerate(inputs, start=1):
+        if cancel_event and cancel_event.is_set():
+            raise RuntimeError("audio conversion cancelled by user")
+
+        source_name = Path(src).name
+        dst = next_available_output_path(paths.output_dir, Path(src).stem, "audio", ext)
+        _status(status_cb, "audio_status", index=idx, total=total, name=source_name)
+
+        convert_audio(
+            paths.ffmpeg,
+            paths.ffprobe,
+            src,
+            AudioOptions(
+                output_file=str(dst),
+                fmt=config.fmt,
+                bitrate=config.bitrate,
+                sample_rate=config.sample_rate,
+                channels=config.channels,
+            ),
+            on_progress=_per_file_progress(idx, total, progress_cb),
+            on_status=_convert_status_mapper(source_name, status_cb),
+            cancel_event=cancel_event,
         )
 
     if progress_cb:

@@ -60,6 +60,11 @@ QUALITY_OPTIONS = (
     "tiny",
 )
 
+AUDIO_FORMAT_OPTIONS = ("ogg", "mp3", "aac", "wav")
+AUDIO_BITRATE_OPTIONS = ("96k", "128k", "160k", "192k", "256k", "320k")
+AUDIO_SAMPLE_RATE_OPTIONS = ("keep", "44100", "48000")
+AUDIO_CHANNEL_OPTIONS = ("keep", "mono", "stereo")
+
 
 def build_main_window_ui(win, language_labels: tuple[str, ...], engine_profiles: tuple[str, ...]) -> None:
     root = QWidget()
@@ -144,11 +149,16 @@ def _build_tabs(win, left: QVBoxLayout, engine_profiles: tuple[str, ...]) -> Non
     convert_layout = QVBoxLayout(convert_tab)
     _build_convert_controls(win, convert_layout, engine_profiles)
 
+    audio_tab = QWidget()
+    audio_layout = QVBoxLayout(audio_tab)
+    _build_audio_controls(win, audio_layout)
+
     atlas_tab = QWidget()
     atlas_layout = QVBoxLayout(atlas_tab)
     _build_atlas_controls(win, atlas_layout)
 
     win.tabs.addTab(convert_tab, "Convert Video")
+    win.tabs.addTab(audio_tab, "Convert Audio")
     win.tabs.addTab(atlas_tab, "Generate Atlas")
 
 
@@ -226,6 +236,69 @@ def _build_convert_controls(win, convert_layout: QVBoxLayout, engine_profiles: t
     preset_layout.addWidget(win.preset_title)
     preset_layout.addWidget(win.preset_body)
     convert_layout.addWidget(win.preset_group)
+
+
+def _build_audio_controls(win, audio_layout: QVBoxLayout) -> None:
+    row = QGridLayout()
+    row.setHorizontalSpacing(10)
+    row.setVerticalSpacing(10)
+
+    win.audio_format_label = QLabel("Format")
+    win.audio_format = QComboBox()
+    for fmt in AUDIO_FORMAT_OPTIONS:
+        win.audio_format.addItem(fmt, fmt)
+    win.audio_format.setMinimumWidth(130)
+
+    win.audio_bitrate_label = QLabel("Bitrate")
+    win.audio_bitrate = QComboBox()
+    for bitrate in AUDIO_BITRATE_OPTIONS:
+        win.audio_bitrate.addItem(bitrate, bitrate)
+    win.audio_bitrate.setCurrentText("160k")
+    win.audio_bitrate.setMinimumWidth(130)
+
+    win.audio_sample_rate_label = QLabel("Sample rate")
+    win.audio_sample_rate = QComboBox()
+    for sample_rate in AUDIO_SAMPLE_RATE_OPTIONS:
+        win.audio_sample_rate.addItem(sample_rate, sample_rate)
+    win.audio_sample_rate.setCurrentText("44100")
+    win.audio_sample_rate.setMinimumWidth(150)
+
+    win.audio_channels_label = QLabel("Channels")
+    win.audio_channels = QComboBox()
+    for channels in AUDIO_CHANNEL_OPTIONS:
+        win.audio_channels.addItem(channels, channels)
+    win.audio_channels.setCurrentText("stereo")
+    win.audio_channels.setMinimumWidth(130)
+
+    row.addWidget(win.audio_format_label, 0, 0)
+    row.addWidget(win.audio_format, 0, 1)
+    row.addWidget(win.audio_bitrate_label, 0, 2)
+    row.addWidget(win.audio_bitrate, 0, 3)
+    row.addWidget(win.audio_sample_rate_label, 0, 4)
+    row.addWidget(win.audio_sample_rate, 0, 5)
+    row.addWidget(win.audio_channels_label, 0, 6)
+    row.addWidget(win.audio_channels, 0, 7)
+    row.setColumnStretch(1, 1)
+    row.setColumnStretch(3, 1)
+    row.setColumnStretch(5, 1)
+    row.setColumnStretch(7, 1)
+    audio_layout.addLayout(row)
+
+    win.audio_guidance_group = QGroupBox()
+    guidance_layout = QVBoxLayout(win.audio_guidance_group)
+    win.audio_guidance_title = QLabel()
+    win.audio_guidance_title.setWordWrap(True)
+    win.audio_guidance_body = QLabel()
+    win.audio_guidance_body.setWordWrap(True)
+    win.audio_video_source_note = QLabel()
+    win.audio_video_source_note.setWordWrap(True)
+    win.audio_video_source_note.setTextFormat(Qt.TextFormat.RichText)
+    win.audio_video_source_note.setVisible(False)
+    guidance_layout.addWidget(win.audio_guidance_title)
+    guidance_layout.addWidget(win.audio_guidance_body)
+    guidance_layout.addWidget(win.audio_video_source_note)
+    audio_layout.addWidget(win.audio_guidance_group)
+    audio_layout.addStretch()
 
 
 def _build_atlas_controls(win, atlas_layout: QVBoxLayout) -> None:
