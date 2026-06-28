@@ -99,9 +99,21 @@ def build_main_window_ui(win, language_labels: tuple[str, ...], engine_profiles:
 def _build_files_row(win, left: QVBoxLayout) -> None:
     files_row = QHBoxLayout()
     files_row.setSpacing(8)
+    win.files_group = QGroupBox("Files")
+    files_group_layout = QVBoxLayout(win.files_group)
+    files_group_layout.setContentsMargins(8, 8, 8, 8)
+    files_group_layout.setSpacing(6)
+    win.files_hint = QLabel("Drag media files here or use Add Files.")
+    win.files_hint.setWordWrap(True)
+    files_group_layout.addWidget(win.files_hint)
     win.files = QListWidget()
     win.files.setSelectionMode(QListWidget.ExtendedSelection)
+    win.files.setStyleSheet(
+        "QListWidget { border: 1px dashed #687386; }"
+        "QListWidget::item:selected { background-color: #58a6ff; color: #11151c; }"
+    )
     win.files_delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, win.files)
+    files_group_layout.addWidget(win.files, 1)
     files_btns = QVBoxLayout()
     files_btns.setSpacing(8)
     win.btn_add = QPushButton("Add Files")
@@ -118,7 +130,7 @@ def _build_files_row(win, left: QVBoxLayout) -> None:
     files_btns.addWidget(win.btn_clear)
     files_btns.addWidget(win.btn_toggle_info)
     files_btns.addStretch()
-    files_row.addWidget(win.files, 1)
+    files_row.addWidget(win.files_group, 1)
     files_row.addLayout(files_btns)
     left.addLayout(files_row)
 

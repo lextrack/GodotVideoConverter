@@ -8,6 +8,8 @@ def apply_language(win) -> None:
     win.btn_add.setText(win._tr("add_files"))
     win.btn_remove.setText(win._tr("remove_selected"))
     win.btn_clear.setText(win._tr("clear"))
+    win.files_group.setTitle(win._tr("files_group_title"))
+    win.files_hint.setText(win._tr("files_drop_hint"))
     win._update_info_toggle_button()
     win.output_label.setText(win._tr("output"))
     win.btn_output_change.setText(win._tr("change_output"))
