@@ -66,13 +66,6 @@ def add_files_to_list(files_widget: QListWidget, files: list[str]) -> AddFilesRe
     return AddFilesResult(added=added, rejected=rejected)
 
 
-def selected_inputs(files_widget: QListWidget) -> list[str]:
-    selected = [x.text() for x in files_widget.selectedItems()]
-    if selected:
-        return selected
-    return [files_widget.item(i).text() for i in range(files_widget.count())]
-
-
 def selected_primary_path(files_widget: QListWidget) -> str | None:
     items = files_widget.selectedItems()
     if items:

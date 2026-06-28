@@ -29,6 +29,7 @@ from gvc.batch import (
 )
 from gvc.convert import ENGINE_PROFILES, ogv_modes_for_profile, validate_resolution
 from gvc.dialogs import (
+    choose_batch_scope,
     confirm_cancel_running,
     show_about,
     show_ffmpeg_not_found,
@@ -45,7 +46,6 @@ from gvc.file_selection import (
     clear_files,
     ensure_initial_selection,
     remove_selected_files,
-    selected_inputs,
     selected_primary_path,
 )
 from gvc.ffmpeg_paths import FFmpegNotFoundError, resolve_ffmpeg_and_ffprobe
@@ -635,8 +635,57 @@ class MainWindow(QMainWindow):
             return None
         return resolution
 
-    def _selected_inputs(self) -> list[str]:
-        return selected_inputs(self.files)
+    def _all_file_paths(self) -> list[str]:
+        return [self.files.item(i).text() for i in range(self.files.count())]
+
+    def _selected_file_paths(self) -> list[str]:
+        return [item.text() for item in self.files.selectedItems()]
+
+    def _is_video_source(self, src: str) -> bool:
+        if self._is_audio_only_source(src):
+            return False
+        try:
+            return bool(self._cached_probe(src).is_valid)
+        except Exception:
+            return False
+
+    def _is_audio_export_source(self, src: str) -> bool:
+        if self._is_audio_only_source(src):
+            return True
+        try:
+            info = self._cached_probe(src)
+        except Exception:
+            return False
+        return bool(info.is_valid and info.has_audio)
+
+    def _compatible_inputs_for_current_tab(self, paths: list[str]) -> list[str]:
+        if self.tabs.currentIndex() == 1:
+            return [src for src in paths if self._is_audio_export_source(src)]
+        return [src for src in paths if self._is_video_source(src)]
+
+    def _inputs_for_current_operation(self) -> list[str] | None:
+        all_inputs = self._compatible_inputs_for_current_tab(self._all_file_paths())
+        if not all_inputs:
+            show_no_files(self, self._tr)
+            return None
+
+        selected_inputs = self._compatible_inputs_for_current_tab(self._selected_file_paths())
+        if len(all_inputs) <= 1:
+            return selected_inputs or all_inputs
+        if selected_inputs and set(selected_inputs) == set(all_inputs):
+            return all_inputs
+        if not selected_inputs:
+            return all_inputs
+
+        scope = choose_batch_scope(
+            self,
+            self._tr,
+            selected_count=len(selected_inputs),
+            total_count=len(all_inputs),
+        )
+        if scope is None:
+            return None
+        return selected_inputs if scope == "selected" else all_inputs
 
     def _cached_probe(self, src: str):
         cached = self._probe_cache.get(src)
@@ -831,9 +880,8 @@ class MainWindow(QMainWindow):
             self._set_status_key("cancelling")
 
     def on_convert(self):
-        inputs = self._selected_inputs()
-        if not inputs:
-            show_no_files(self, self._tr)
+        inputs = self._inputs_for_current_operation()
+        if inputs is None:
             return
 
         try:
@@ -878,9 +926,8 @@ class MainWindow(QMainWindow):
         self._start_worker(_run)
 
     def on_audio(self):
-        inputs = self._selected_inputs()
-        if not inputs:
-            show_no_files(self, self._tr)
+        inputs = self._inputs_for_current_operation()
+        if inputs is None:
             return
 
         output = self._ensure_output_directory(notify=True)
@@ -908,9 +955,8 @@ class MainWindow(QMainWindow):
         self._start_worker(_run)
 
     def on_atlas(self):
-        inputs = self._selected_inputs()
-        if not inputs:
-            show_no_files(self, self._tr)
+        inputs = self._inputs_for_current_operation()
+        if inputs is None:
             return
 
         output = self._ensure_output_directory(notify=True)

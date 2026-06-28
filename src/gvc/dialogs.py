@@ -42,6 +42,25 @@ def show_invalid_fps(parent, tr, message: str) -> None:
     show_warning(parent, tr("invalid_fps_title"), message)
 
 
+def choose_batch_scope(parent, tr, *, selected_count: int, total_count: int) -> str | None:
+    box = QMessageBox(parent)
+    box.setIcon(QMessageBox.Icon.Question)
+    box.setWindowTitle(tr("batch_scope_title"))
+    box.setText(tr("batch_scope_text", selected=selected_count, total=total_count))
+    selected_button = box.addButton(tr("batch_scope_selected"), QMessageBox.ButtonRole.AcceptRole)
+    all_button = box.addButton(tr("batch_scope_all"), QMessageBox.ButtonRole.YesRole)
+    box.addButton(tr("cancel"), QMessageBox.ButtonRole.RejectRole)
+    box.setDefaultButton(selected_button)
+    box.exec()
+
+    clicked = box.clickedButton()
+    if clicked == selected_button:
+        return "selected"
+    if clicked == all_button:
+        return "all"
+    return None
+
+
 def show_about(parent, tr, version: str) -> None:
     dialog = QDialog(parent)
     dialog.setWindowTitle(tr("about"))
