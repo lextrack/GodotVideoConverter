@@ -1,6 +1,6 @@
 # Godot Video Converter
 
-Desktop app for converting videos into game-ready formats, especially `ogv` for Godot, plus sprite atlas generation for 2D workflows.
+Desktop app for converting video and audio into game-ready formats, especially `ogv` for Godot and others engines, plus sprite atlas generation for 2D workflows.
 
 This project is a Python rewrite of the original .NET tool I made some time ago.
 
@@ -11,11 +11,13 @@ This project is a Python rewrite of the original .NET tool I made some time ago.
 ## Features
 
 - Convert videos to `ogv`, `mp4`, `webm`, and `gif`
+- Convert audio to `ogg`, `mp3`, `aac`, and `wav`
+- Extract audio from video files
 - Use Godot-focused OGV presets
 - Use Love2D-focused OGV presets
 - Generate PNG sprite atlases from video
 - Batch process files from a GUI
-- Analyze source video before export
+- Show export summaries and recommendations
 
 ## Main Workflows
 
@@ -23,22 +25,14 @@ This project is a Python rewrite of the original .NET tool I made some time ago.
 
 - `ogv` is the main target for Godot playback
 - `mp4`, `webm`, and `gif` are also available
-- Quality, FPS, resolution, audio, and OGV mode can be adjusted from the GUI
+- Quality, FPS, resolution, audio, and OGV mode can be adjusted from the GUI.
+- Each engine has its own OGV modes.
 
-Godot OGV modes:
+### Audio Conversion
 
-- `Official Godot`
-- `Seek Friendly`
-- `Ideal Loop`
-- `Mobile Optimized`
-- `High Compression`
-
-Love2D OGV modes:
-
-- `Love2D Compatibility`
-- `Seek Friendly`
-- `Ideal Loop`
-- `Lightweight`
+- Convert audio files to `ogg`, `mp3`, `aac`, or `wav`
+- Extract audio from selected video files
+- For Godot, use `ogg` for music/loops and `wav` for short SFX
 
 ### Atlas Generation
 
@@ -88,7 +82,7 @@ python -m venv .venv
 pip install -e .
 ```
 
-6. Make sure FFmpeg (7.1.1 recomended version) is available using ONE of these options:
+6. Make sure FFmpeg (7.1.1 recommended version) is available using ONE of these options:
 
 - Copy `ffmpeg.exe` and `ffprobe.exe` into `bin/`
 - Set `GVC_FFMPEG_DIR` to the folder that contains both binaries
