@@ -101,6 +101,10 @@ def _apply_default_theme(app: QApplication) -> None:
     app.setPalette(_dark_palette())
     app.setStyleSheet(
         """
+        QWidget {
+            font-family: "Inter", "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", "WenQuanYi Micro Hei", sans-serif;
+            font-size: 10.5pt;
+        }
         QLabel[gvcRole="fieldLabel"] {
             color: #9ecbff;
             font-weight: 600;
@@ -165,6 +169,10 @@ class MainWindow(QMainWindow):
         self._output_validation_timer = QTimer(self)
         self._output_validation_timer.setInterval(4000)
         self._output_validation_timer.timeout.connect(self._ensure_output_directory_silent)
+        self._progress_clear_timer = QTimer(self)
+        self._progress_clear_timer.setSingleShot(True)
+        self._progress_clear_timer.setInterval(5000)
+        self._progress_clear_timer.timeout.connect(self._reset_progress_bar)
 
         build_main_window_ui(self, LANGUAGE_LABELS, ENGINE_PROFILES)
 
@@ -232,8 +240,12 @@ class MainWindow(QMainWindow):
         self._set_busy(False)
         if ok and not (self._cancel_event and self._cancel_event.is_set()):
             self._set_status_key("done")
+            self.progress.setRange(0, 100)
+            self.progress.setValue(100)
+            self._progress_clear_timer.start()
         elif self._cancel_event and self._cancel_event.is_set():
             self._set_status_key("cancelled")
+            self._reset_progress_bar()
         else:
             self._freeze_progress_bar_on_error()
 
@@ -322,6 +334,7 @@ class MainWindow(QMainWindow):
         self.progress.setStyleSheet("")
 
     def _reset_progress_bar(self, indeterminate: bool = False) -> None:
+        self._progress_clear_timer.stop()
         self._progress_started = False
         self._set_progress_error_state(False)
         if indeterminate:
@@ -332,6 +345,7 @@ class MainWindow(QMainWindow):
         self.progress.setValue(0)
 
     def _freeze_progress_bar_on_error(self) -> None:
+        self._progress_clear_timer.stop()
         self.progress.setRange(0, 100)
         self.progress.setValue(100)
         self._set_progress_error_state(True)
@@ -875,6 +889,7 @@ class MainWindow(QMainWindow):
             self.on_atlas()
 
     def _start_worker(self, fn):
+        self._progress_clear_timer.stop()
         self._thread = QThread(self)
         self._cancel_event = Event()
         self._worker = Worker(fn, self._cancel_event)

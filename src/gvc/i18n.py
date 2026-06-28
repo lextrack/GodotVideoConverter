@@ -34,6 +34,13 @@ def normalize_language_label(language: str) -> str:
         "fr": "Français",
         "deutsch": "Deutsch",
         "de": "Deutsch",
+        "简体中文": "简体中文",
+        "中文": "简体中文",
+        "zh": "简体中文",
+        "zh_cn": "简体中文",
+        "zh-cn": "简体中文",
+        "zh_hans": "简体中文",
+        "zh-hans": "简体中文",
     }
     return aliases.get(normalized.casefold(), DEFAULT_LANGUAGE_LABEL)
 
