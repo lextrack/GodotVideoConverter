@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
+    QFrame,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -64,6 +65,16 @@ AUDIO_FORMAT_OPTIONS = ("ogg", "mp3", "aac", "wav")
 AUDIO_BITRATE_OPTIONS = ("96k", "128k", "160k", "192k", "256k", "320k")
 AUDIO_SAMPLE_RATE_OPTIONS = ("keep", "44100", "48000")
 AUDIO_CHANNEL_OPTIONS = ("keep", "mono", "stereo")
+
+
+def _mark_field_labels(*labels: QLabel) -> None:
+    for label in labels:
+        label.setProperty("gvcRole", "fieldLabel")
+
+
+def _mark_field_hints(*labels: QLabel) -> None:
+    for label in labels:
+        label.setProperty("gvcRole", "fieldHint")
 
 
 def build_main_window_ui(win, language_labels: tuple[str, ...], engine_profiles: tuple[str, ...]) -> None:
@@ -147,6 +158,7 @@ def _build_output_row(win, left: QVBoxLayout, language_labels: tuple[str, ...]) 
     win.language.setMinimumWidth(120)
     win.output_label = QLabel("Output:")
     win.language_label = QLabel("Language:")
+    _mark_field_labels(win.output_label, win.language_label)
     out_row.addWidget(win.output_label)
     out_row.addWidget(win.output, 1)
     out_row.addWidget(win.btn_output_change)
@@ -204,6 +216,7 @@ def _build_convert_controls(win, convert_layout: QVBoxLayout, engine_profiles: t
     win.quality_label = QLabel("Quality")
     win.resolution_label = QLabel("Resolution")
     win.fps_label = QLabel("FPS")
+    _mark_field_labels(win.format_label, win.quality_label, win.resolution_label, win.fps_label)
     row1.addWidget(win.format_label, 0, 0)
     row1.addWidget(win.format, 0, 1)
     row1.addWidget(win.quality_label, 0, 2)
@@ -231,6 +244,7 @@ def _build_convert_controls(win, convert_layout: QVBoxLayout, engine_profiles: t
     win.engine_profile.setMinimumWidth(150)
     win.keep_audio = QCheckBox("Keep audio")
     win.ogv_mode_label = QLabel("OGV mode")
+    _mark_field_labels(win.engine_profile_label, win.ogv_mode_label)
     win.ogv_mode = QComboBox()
     win.ogv_mode.setMinimumWidth(240)
     win._reload_ogv_mode_options("Godot")
@@ -280,6 +294,12 @@ def _build_audio_controls(win, audio_layout: QVBoxLayout) -> None:
     win.audio_sample_rate.setMinimumWidth(150)
 
     win.audio_channels_label = QLabel("Channels")
+    _mark_field_labels(
+        win.audio_format_label,
+        win.audio_bitrate_label,
+        win.audio_sample_rate_label,
+        win.audio_channels_label,
+    )
     win.audio_channels = QComboBox()
     for channels in AUDIO_CHANNEL_OPTIONS:
         win.audio_channels.addItem(channels, channels)
@@ -319,22 +339,68 @@ def _build_audio_controls(win, audio_layout: QVBoxLayout) -> None:
 
 def _build_atlas_controls(win, atlas_layout: QVBoxLayout) -> None:
     arow1 = QHBoxLayout()
+    arow1.setSpacing(8)
     win.atlas_fps = QSpinBox()
     win.atlas_fps.setRange(1, 30)
     win.atlas_fps.setValue(5)
     win.atlas_mode = QComboBox()
+    win.atlas_mode.setMinimumWidth(120)
     win.atlas_res = QComboBox()
+    win.atlas_res.setMinimumWidth(120)
     win.frames_label = QLabel("Frames")
     win.mode_label = QLabel("Mode")
     win.atlas_resolution_label = QLabel("Resolution")
+    _mark_field_labels(win.frames_label, win.mode_label, win.atlas_resolution_label)
     arow1.addWidget(win.frames_label)
     arow1.addWidget(win.atlas_fps)
+    arow1.addSpacing(8)
     arow1.addWidget(win.mode_label)
     arow1.addWidget(win.atlas_mode)
+    arow1.addSpacing(8)
     arow1.addWidget(win.atlas_resolution_label)
     arow1.addWidget(win.atlas_res)
     arow1.addStretch()
     atlas_layout.addLayout(arow1)
+    atlas_layout.addSpacing(8)
+    atlas_separator = QFrame()
+    atlas_separator.setFrameShape(QFrame.Shape.HLine)
+    atlas_separator.setFrameShadow(QFrame.Shadow.Plain)
+    atlas_separator.setStyleSheet("color: #3f4754;")
+    atlas_layout.addWidget(atlas_separator)
+    atlas_layout.addSpacing(8)
+
+    arow2 = QHBoxLayout()
+    arow2.setSpacing(8)
+    win.atlas_start = QDoubleSpinBox()
+    win.atlas_start.setRange(0.0, 99999.0)
+    win.atlas_start.setDecimals(2)
+    win.atlas_start.setSingleStep(0.25)
+    win.atlas_start.setSuffix(" s")
+    win.atlas_start.setMinimumWidth(95)
+    win.atlas_duration = QDoubleSpinBox()
+    win.atlas_duration.setRange(0.0, 99999.0)
+    win.atlas_duration.setDecimals(2)
+    win.atlas_duration.setSingleStep(0.25)
+    win.atlas_duration.setSuffix(" s")
+    win.atlas_duration.setMinimumWidth(105)
+    win.atlas_range_label = QLabel("Video range")
+    win.atlas_start_label = QLabel("Start")
+    win.atlas_duration_label = QLabel("Duration")
+    win.atlas_duration_hint = QLabel("Duration of the captured segment")
+    _mark_field_labels(win.atlas_range_label, win.atlas_start_label, win.atlas_duration_label)
+    _mark_field_hints(win.atlas_duration_hint)
+    arow2.addWidget(win.atlas_range_label)
+    arow2.addSpacing(8)
+    arow2.addWidget(win.atlas_start_label)
+    arow2.addWidget(win.atlas_start)
+    arow2.addSpacing(8)
+    arow2.addWidget(win.atlas_duration_label)
+    arow2.addWidget(win.atlas_duration)
+    arow2.addSpacing(8)
+    arow2.addWidget(win.atlas_duration_hint)
+    arow2.addStretch()
+    atlas_layout.addLayout(arow2)
+    atlas_layout.addStretch()
 
 
 def _build_actions_row(win, left: QVBoxLayout) -> None:

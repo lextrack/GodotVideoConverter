@@ -99,6 +99,23 @@ def _dark_palette() -> QPalette:
 def _apply_default_theme(app: QApplication) -> None:
     app.setStyle("Fusion")
     app.setPalette(_dark_palette())
+    app.setStyleSheet(
+        """
+        QLabel[gvcRole="fieldLabel"] {
+            color: #9ecbff;
+            font-weight: 600;
+        }
+        QLabel[gvcRole="fieldLabel"]:disabled {
+            color: #687386;
+        }
+        QLabel[gvcRole="fieldHint"] {
+            color: #b8c0cc;
+        }
+        QLabel[gvcRole="fieldHint"]:disabled {
+            color: #687386;
+        }
+        """
+    )
 
 
 class Worker(QObject):
@@ -144,6 +161,7 @@ class MainWindow(QMainWindow):
         self._progress_error_state = False
         self._close_after_cancel = False
         self._info_panel_visible = True
+        self._atlas_range_source: str | None = None
         self._output_validation_timer = QTimer(self)
         self._output_validation_timer.setInterval(4000)
         self._output_validation_timer.timeout.connect(self._ensure_output_directory_silent)
@@ -198,6 +216,9 @@ class MainWindow(QMainWindow):
         self.atlas_mode.currentTextChanged.connect(self._refresh_experience_panels)
         self.atlas_res.currentTextChanged.connect(self.save_ui_settings)
         self.atlas_res.currentTextChanged.connect(self._refresh_experience_panels)
+        self.atlas_start.valueChanged.connect(self._on_atlas_start_changed)
+        self.atlas_start.valueChanged.connect(self._refresh_experience_panels)
+        self.atlas_duration.valueChanged.connect(self._refresh_experience_panels)
 
         apply_saved_settings(self)
         self._ensure_output_directory_silent()
@@ -530,6 +551,8 @@ class MainWindow(QMainWindow):
             f"{self._tr('atlas_summary_frames')}: {self.atlas_fps.value()}",
             f"{self._tr('mode')}: {self.atlas_mode.currentText()}",
             f"{self._tr('atlas_frame_size')}: {self.atlas_res.currentText()}",
+            f"{self._tr('atlas_start_time')}: {self.atlas_start.value():g}s",
+            f"{self._tr('atlas_duration')}: {self._atlas_duration_summary()}",
             f"{self._tr('summary_output_file')}: {output}",
         ]
         self.summary_text.setHtml(
@@ -541,6 +564,63 @@ class MainWindow(QMainWindow):
 
     def _html_list(self, items: list[str]) -> str:
         return "<ul>" + "".join(f"<li>{html.escape(item)}</li>" for item in items) + "</ul>"
+
+    def _atlas_duration_summary(self) -> str:
+        duration = self.atlas_duration.value()
+        if duration <= 0:
+            return self._tr("atlas_duration_to_end")
+        return f"{duration:g}s"
+
+    def _selected_video_duration(self) -> float | None:
+        src = self._selected_primary_path()
+        if not src or self._is_audio_only_source(src):
+            return None
+        try:
+            info = self._cached_probe(src)
+        except Exception:
+            return None
+        if not info.is_valid or info.duration <= 0:
+            return None
+        return info.duration
+
+    def _sync_atlas_range_with_selected_video(self) -> None:
+        src = self._selected_primary_path()
+        duration = self._selected_video_duration()
+        if src is None or duration is None:
+            self._atlas_range_source = None
+            self.atlas_start.blockSignals(True)
+            self.atlas_duration.blockSignals(True)
+            self.atlas_start.setMaximum(99999.0)
+            self.atlas_duration.setMaximum(99999.0)
+            self.atlas_start.setValue(0.0)
+            self.atlas_duration.setValue(0.0)
+            self.atlas_duration.blockSignals(False)
+            self.atlas_start.blockSignals(False)
+            return
+
+        is_new_source = src != self._atlas_range_source
+        self._atlas_range_source = src
+        max_start = max(0.0, duration - 0.01)
+        start = 0.0 if is_new_source else min(self.atlas_start.value(), max_start)
+        remaining = max(0.01, duration - start)
+        selected_duration = remaining if is_new_source else min(max(self.atlas_duration.value(), 0.01), remaining)
+
+        self.atlas_start.blockSignals(True)
+        self.atlas_duration.blockSignals(True)
+        self.atlas_start.setMaximum(max_start)
+        self.atlas_start.setValue(start)
+        self.atlas_duration.setMaximum(remaining)
+        self.atlas_duration.setValue(selected_duration)
+        self.atlas_duration.blockSignals(False)
+        self.atlas_start.blockSignals(False)
+
+    def _on_atlas_start_changed(self, _value: float) -> None:
+        duration = self._selected_video_duration()
+        if duration is None:
+            return
+        remaining = max(0.01, duration - self.atlas_start.value())
+        self.atlas_duration.setMaximum(remaining)
+        self.atlas_duration.setValue(remaining)
 
     def _selected_video_info(self):
         if self.tabs.currentIndex() == 1:
@@ -726,6 +806,8 @@ class MainWindow(QMainWindow):
         self.atlas_fps.setEnabled(not busy)
         self.atlas_mode.setEnabled(not busy)
         self.atlas_res.setEnabled(not busy)
+        self.atlas_start.setEnabled(not busy)
+        self.atlas_duration.setEnabled(not busy)
         self.btn_cancel.setEnabled(busy)
 
     def _update_action_button(self) -> None:
@@ -822,6 +904,7 @@ class MainWindow(QMainWindow):
 
     def refresh_selected_info(self) -> None:
         src = selected_primary_path(self.files)
+        self._sync_atlas_range_with_selected_video()
         if not src:
             self._refresh_experience_panels()
             return
@@ -968,6 +1051,8 @@ class MainWindow(QMainWindow):
             fps=self.atlas_fps.value(),
             mode=self._atlas_mode_value(),
             resolution=self._atlas_resolution_value(),
+            start_time=self.atlas_start.value(),
+            duration=self.atlas_duration.value(),
         )
 
         def _run(cancel_event: Event, progress_cb, status_cb):

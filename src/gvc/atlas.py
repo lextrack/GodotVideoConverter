@@ -65,7 +65,7 @@ def _validate_output_size(cols: int, rows: int, frame_w: int, frame_h: int) -> N
     atlas_h = rows * frame_h
     if atlas_w > 16384 or atlas_h > 16384:
         raise ValueError(
-            f"Atlas too large ({atlas_w}x{atlas_h}). Reduce FPS."
+            f"Atlas too large ({atlas_w}x{atlas_h}). Reduce frames, duration, or frame size."
         )
 
 
@@ -77,6 +77,8 @@ def _generate_sprite_atlas_ffmpeg(
     fps: int,
     mode: str,
     atlas_resolution: str | None,
+    start_time: float = 0.0,
+    duration: float = 0.0,
     cancel_event=None,
     on_progress=None,
 ) -> AtlasResult:
@@ -84,7 +86,15 @@ def _generate_sprite_atlas_ffmpeg(
     if not info.is_valid:
         raise ValueError("invalid video file")
 
-    frame_count = max(1, math.ceil(info.duration * fps))
+    start = max(0.0, float(start_time or 0.0))
+    requested_duration = max(0.0, float(duration or 0.0))
+    if start >= info.duration:
+        raise ValueError("atlas start time must be before the end of the video")
+    effective_duration = info.duration - start
+    if requested_duration > 0:
+        effective_duration = min(requested_duration, effective_duration)
+
+    frame_count = max(1, math.ceil(effective_duration * fps))
     cols, rows = _atlas_layout(frame_count, mode)
 
     filters = [f"fps={fps}"]
@@ -106,21 +116,18 @@ def _generate_sprite_atlas_ffmpeg(
     if temp_out.exists():
         temp_out.unlink()
 
-    args = [
-        "-y",
-        "-i",
-        input_file,
-        "-frames:v",
-        "1",
-        "-vf",
-        ",".join(filters),
-        str(temp_out),
-    ]
+    args = ["-y"]
+    if start > 0:
+        args.extend(["-ss", f"{start:g}"])
+    args.extend(["-i", input_file])
+    if requested_duration > 0:
+        args.extend(["-t", f"{effective_duration:g}"])
+    args.extend(["-frames:v", "1", "-vf", ",".join(filters), str(temp_out)])
     try:
         run_ffmpeg(
             ffmpeg_path,
             args,
-            total_seconds=info.duration,
+            total_seconds=effective_duration,
             on_progress=on_progress,
             cancel_event=cancel_event,
         )
@@ -148,6 +155,8 @@ def generate_sprite_atlas(
     fps: int = 5,
     mode: str = "grid",
     atlas_resolution: str | None = "medium",
+    start_time: float = 0.0,
+    duration: float = 0.0,
     cancel_event=None,
     on_progress=None,
 ) -> AtlasResult:
@@ -165,6 +174,8 @@ def generate_sprite_atlas(
         fps=fps,
         mode=mode,
         atlas_resolution=atlas_resolution,
+        start_time=start_time,
+        duration=duration,
         cancel_event=cancel_event,
         on_progress=on_progress,
     )

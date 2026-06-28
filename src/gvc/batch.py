@@ -39,6 +39,8 @@ class AtlasBatchConfig:
     fps: int
     mode: str
     resolution: str
+    start_time: float = 0.0
+    duration: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,6 +152,8 @@ def generate_atlas_batch(
             fps=config.fps,
             mode=config.mode,
             atlas_resolution=config.resolution,
+            start_time=config.start_time,
+            duration=config.duration,
             cancel_event=cancel_event,
             on_progress=_per_file_progress(idx, total, progress_cb),
         )

@@ -169,6 +169,13 @@ def translate_runtime_error(message: str, language: str) -> str:
     if not text:
         return ""
 
+    match = re.fullmatch(
+        r"Atlas too large \(([^)]+)\)\. Reduce frames, duration, or frame size\.",
+        text,
+    )
+    if match:
+        return ui_text(language, "error_atlas_too_large", size=match.group(1))
+
     match = re.fullmatch(r"Atlas too large \(([^)]+)\)\. Reduce FPS\.", text)
     if match:
         return ui_text(language, "error_atlas_too_large", size=match.group(1))
@@ -182,6 +189,9 @@ def translate_runtime_error(message: str, language: str) -> str:
 
     if text == "atlas fps must be between 1 and 30":
         return ui_text(language, "error_atlas_fps_range")
+
+    if text == "atlas start time must be before the end of the video":
+        return ui_text(language, "error_atlas_start_range")
 
     if text == "output resolution must use WIDTHxHEIGHT, for example 1280x720":
         return ui_text(language, "error_resolution_format")
