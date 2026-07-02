@@ -3,11 +3,12 @@ from __future__ import annotations
 import re
 import queue
 import subprocess
-import sys
 import time
 import threading
 from threading import Event
 from typing import Callable
+
+from gvc.process_utils import hidden_subprocess_kwargs
 
 TIME_RE = re.compile(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)")
 
@@ -18,18 +19,6 @@ class FFmpegRunError(RuntimeError):
 
 ProgressCallback = Callable[[int], None]
 StatusCallback = Callable[[str], None]
-
-
-def _hidden_subprocess_kwargs() -> dict[str, object]:
-    if sys.platform != "win32":
-        return {}
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    return {
-        "creationflags": subprocess.CREATE_NO_WINDOW,
-        "startupinfo": startupinfo,
-    }
-
 
 def run_ffmpeg(
     ffmpeg_path: str,
@@ -50,7 +39,7 @@ def run_ffmpeg(
         encoding="utf-8",
         errors="replace",
         bufsize=1,
-        **_hidden_subprocess_kwargs(),
+        **hidden_subprocess_kwargs(),
     )
 
     if process.stderr is None:

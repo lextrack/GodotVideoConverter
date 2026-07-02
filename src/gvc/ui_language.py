@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from gvc.gui_experience import refresh_audio_source_notice
 from gvc.ui_panels import AUDIO_CHANNEL_OPTIONS, AUDIO_FORMAT_OPTIONS, AUDIO_SAMPLE_RATE_OPTIONS, QUALITY_OPTIONS
 
 
@@ -34,7 +35,7 @@ def apply_language(win) -> None:
     win.audio_guidance_group.setTitle(win._tr("audio_guidance_group"))
     win.audio_guidance_title.setText(f"<b>{win._tr('audio_guidance_title')}</b>")
     win.audio_guidance_body.setText(win._tr("audio_guidance_body"))
-    win._refresh_audio_source_notice()
+    refresh_audio_source_notice(win)
     reload_audio_format_options(win)
     reload_audio_sample_rate_options(win)
     reload_audio_channel_options(win)

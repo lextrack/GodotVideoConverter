@@ -1,22 +1,9 @@
 from __future__ import annotations
 
-import json
 import math
-import subprocess
-import sys
 
+from gvc.media_probe import probe_media_json
 from gvc.models import VideoInfo
-
-
-def _hidden_subprocess_kwargs() -> dict[str, object]:
-    if sys.platform != "win32":
-        return {}
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    return {
-        "creationflags": subprocess.CREATE_NO_WINDOW,
-        "startupinfo": startupinfo,
-    }
 
 
 def _parse_frame_rate(raw: str) -> float:
@@ -73,35 +60,8 @@ def _is_attached_picture(stream: dict) -> bool:
 
 
 def probe_video(ffprobe_path: str, file_path: str) -> VideoInfo:
-    cmd = [
-        ffprobe_path,
-        "-v",
-        "quiet",
-        "-print_format",
-        "json",
-        "-show_format",
-        "-show_streams",
-        file_path,
-    ]
-    try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            **_hidden_subprocess_kwargs(),
-        )
-    except (OSError, subprocess.SubprocessError):
-        return VideoInfo()
-    if proc.returncode != 0 or not proc.stdout:
-        return VideoInfo()
-
-    try:
-        data = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return VideoInfo()
-    if not isinstance(data, dict):
+    data = probe_media_json(ffprobe_path, file_path)
+    if data is None:
         return VideoInfo()
 
     info = VideoInfo()

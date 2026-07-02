@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import contextlib
-import json
 import math
-import subprocess
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from gvc.media_probe import probe_media_json
+from gvc.process_utils import cleanup_temp_output, temp_output_path
 from gvc.runner import run_ffmpeg
 
 
@@ -25,48 +23,9 @@ class AudioOptions:
     sample_rate: str = "44100"
     channels: str = "stereo"
 
-
-def _hidden_subprocess_kwargs() -> dict[str, object]:
-    if sys.platform != "win32":
-        return {}
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    return {
-        "creationflags": subprocess.CREATE_NO_WINDOW,
-        "startupinfo": startupinfo,
-    }
-
-
 def probe_audio_duration(ffprobe_path: str, file_path: str) -> float:
-    cmd = [
-        ffprobe_path,
-        "-v",
-        "quiet",
-        "-print_format",
-        "json",
-        "-show_format",
-        "-show_streams",
-        file_path,
-    ]
-    try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            **_hidden_subprocess_kwargs(),
-        )
-    except (OSError, subprocess.SubprocessError):
-        return 0.0
-    if proc.returncode != 0 or not proc.stdout:
-        return 0.0
-
-    try:
-        data = json.loads(proc.stdout)
-    except json.JSONDecodeError:
-        return 0.0
-    if not isinstance(data, dict):
+    data = probe_media_json(ffprobe_path, file_path)
+    if data is None:
         return 0.0
 
     fmt = data.get("format") or {}
@@ -106,9 +65,8 @@ def convert_audio(
 
     final_out = Path(options.output_file)
     final_out.parent.mkdir(parents=True, exist_ok=True)
-    temp_out = final_out.with_name(f"{final_out.stem}.part{final_out.suffix}")
-    if temp_out.exists():
-        temp_out.unlink()
+    temp_out = temp_output_path(final_out)
+    cleanup_temp_output(temp_out)
 
     if on_status:
         on_status("probe_input")
@@ -136,8 +94,7 @@ def convert_audio(
         temp_out.replace(final_out)
         return str(final_out)
     except Exception:
-        with contextlib.suppress(FileNotFoundError):
-            temp_out.unlink()
+        cleanup_temp_output(temp_out)
         raise
 
 

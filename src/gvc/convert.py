@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 
+from gvc.process_utils import cleanup_temp_output, temp_output_path
 from gvc.probe import probe_video
 from gvc.runner import run_ffmpeg
 
@@ -325,9 +325,8 @@ def convert_video(
 
     final_out = Path(options.output_file)
     final_out.parent.mkdir(parents=True, exist_ok=True)
-    temp_out = final_out.with_name(f"{final_out.stem}.part{final_out.suffix}")
-    if temp_out.exists():
-        temp_out.unlink()
+    temp_out = temp_output_path(final_out)
+    cleanup_temp_output(temp_out)
 
     if on_status:
         on_status("probe_input")
@@ -363,6 +362,5 @@ def convert_video(
         temp_out.replace(final_out)
         return str(final_out)
     except Exception:
-        with contextlib.suppress(FileNotFoundError):
-            temp_out.unlink()
+        cleanup_temp_output(temp_out)
         raise

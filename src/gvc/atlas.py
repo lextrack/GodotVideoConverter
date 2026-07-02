@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import contextlib
 import math
 from dataclasses import dataclass
 from pathlib import Path
 
+from gvc.process_utils import cleanup_temp_output, temp_output_path
 from gvc.probe import probe_video
 from gvc.runner import run_ffmpeg
 
@@ -112,9 +112,8 @@ def _generate_sprite_atlas_ffmpeg(
 
     out = Path(output_file)
     out.parent.mkdir(parents=True, exist_ok=True)
-    temp_out = out.with_name(f"{out.stem}.part{out.suffix}")
-    if temp_out.exists():
-        temp_out.unlink()
+    temp_out = temp_output_path(out)
+    cleanup_temp_output(temp_out)
 
     args = ["-y"]
     if start > 0:
@@ -133,8 +132,7 @@ def _generate_sprite_atlas_ffmpeg(
         )
         temp_out.replace(out)
     except Exception:
-        with contextlib.suppress(FileNotFoundError):
-            temp_out.unlink()
+        cleanup_temp_output(temp_out)
         raise
 
     return AtlasResult(

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import html
 import sys
 from pathlib import Path
 from threading import Event
 
-from PySide6.QtCore import QObject, QThread, QTimer, Signal, QUrl
+from PySide6.QtCore import QThread, QTimer, QUrl
 from PySide6.QtGui import (
     QColor,
     QCloseEvent,
@@ -17,41 +16,45 @@ from PySide6.QtGui import (
 )
 from PySide6.QtWidgets import QApplication, QFileDialog, QMainWindow
 
-from gvc.batch import (
-    AtlasBatchConfig,
-    AudioBatchConfig,
-    BatchPaths,
-    ConvertBatchConfig,
-    ProbeCache,
-    convert_audio_batch,
-    convert_batch,
-    generate_atlas_batch,
-)
-from gvc.convert import ENGINE_PROFILES, ogv_modes_for_profile, validate_resolution
+from gvc.convert import ENGINE_PROFILES, validate_resolution
 from gvc.dialogs import (
-    choose_batch_scope,
     confirm_cancel_running,
     show_about,
     show_ffmpeg_not_found,
-    show_invalid_fps,
     show_invalid_resolution,
-    show_no_files,
     show_open_output_failed,
     show_output_error,
 )
-from gvc.experience import ExperienceContext, guidance_html, preset_summary, summary_html
-from gvc.file_selection import (
-    AUDIO_EXTENSIONS,
-    add_files_to_list,
-    clear_files,
-    ensure_initial_selection,
-    remove_selected_files,
-    selected_primary_path,
-)
 from gvc.ffmpeg_paths import FFmpegNotFoundError, resolve_ffmpeg_and_ffprobe
 from gvc import __version__
+from gvc.gui_experience import (
+    on_atlas_start_changed,
+    refresh_experience_panels,
+    sync_atlas_range_with_selected_video,
+)
+from gvc.gui_operations import start_atlas, start_audio, start_convert
+from gvc.gui_selection import (
+    add_files,
+    cached_probe,
+    clear_all,
+    inputs_for_current_operation,
+    is_audio_only_source,
+    refresh_selected_info,
+    remove_selected,
+    selected_primary,
+    selected_source_is_video,
+)
+from gvc.gui_state_controller import (
+    reload_ogv_mode_options,
+    set_busy,
+    set_info_panel_visible,
+    update_action_button,
+    update_audio_bitrate_state,
+    update_info_toggle_button,
+    update_ogv_mode_state,
+)
 from gvc.i18n import LANGUAGE_LABELS, language_label_to_code, translate_runtime_error, ui_text
-from gvc.probe import probe_video
+from gvc.qt_worker import Worker
 from gvc.settings import load_settings
 from gvc.ui_language import apply_language
 from gvc.ui_panels import build_main_window_ui
@@ -120,28 +123,6 @@ def _apply_default_theme(app: QApplication) -> None:
         }
         """
     )
-
-
-class Worker(QObject):
-    progress = Signal(int)
-    status = Signal(object)
-    done = Signal(bool)
-
-    def __init__(self, fn, cancel_event: Event):
-        super().__init__()
-        self._fn = fn
-        self._cancel_event = cancel_event
-
-    def run(self):
-        try:
-            self._fn(self._cancel_event, self.progress.emit, self.status.emit)
-            self.done.emit(True)
-        except Exception as exc:
-            if self._cancel_event.is_set() or "cancel" in str(exc).lower():
-                self.status.emit({"key": "cancelled", "kwargs": {}})
-            else:
-                self.status.emit({"error": str(exc)})
-            self.done.emit(False)
 
 
 class MainWindow(QMainWindow):
@@ -486,220 +467,19 @@ class MainWindow(QMainWindow):
         return {ui_text(label, key) for label in LANGUAGE_LABELS}
 
     def _selected_primary_path(self) -> str | None:
-        return selected_primary_path(self.files)
+        return selected_primary(self)
 
     def _is_audio_only_source(self, src: str) -> bool:
-        if Path(src).suffix.lower() in AUDIO_EXTENSIONS:
-            return True
-        try:
-            info = self._cached_probe(src)
-        except Exception:
-            return False
-        return bool(info.has_audio and info.width <= 0 and info.height <= 0)
+        return is_audio_only_source(self, src)
 
     def _selected_source_is_video(self) -> bool:
-        src = self._selected_primary_path()
-        if not src or self._is_audio_only_source(src):
-            return False
-        try:
-            return bool(self._cached_probe(src).is_valid)
-        except Exception:
-            return False
-
-    def _refresh_audio_source_notice(self) -> None:
-        src = self._selected_primary_path()
-        if not src or not self._selected_source_is_video():
-            self.audio_video_source_note.clear()
-            self.audio_video_source_note.setVisible(False)
-            return
-        name = html.escape(Path(src).name)
-        title = html.escape(self._tr("audio_video_source_title"))
-        body = html.escape(self._tr("audio_video_source_body"))
-        self.audio_video_source_note.setText(f"<p><b>{title}</b><br>{body}</p><p><b>{name}</b></p>")
-        self.audio_video_source_note.setVisible(True)
-
-    def _audio_output_preview_name(self, src: str | None) -> str:
-        stem = Path(src).stem if src else "audio"
-        suffix = {
-            "ogg": ".ogg",
-            "mp3": ".mp3",
-            "aac": ".aac",
-            "wav": ".wav",
-        }.get(self._audio_format_value(), ".ogg")
-        return f"{stem}_audio{suffix}"
-
-    def _right_panel_empty_state(self) -> None:
-        tab = self.tabs.currentIndex()
-        body_key = {
-            0: "empty_video_body",
-            1: "empty_audio_body",
-            2: "empty_atlas_body",
-        }.get(tab, "empty_video_body")
-        self.summary_text.setHtml(
-            f"<h3>{html.escape(self._tr('empty_state_title'))}</h3>"
-            f"<p>{html.escape(self._tr(body_key))}</p>"
-        )
-        self.guidance_text.setHtml(f"<p>{html.escape(self._tr('empty_state_formats'))}</p>")
-
-    def _refresh_audio_right_panel(self, src: str) -> None:
-        source_label = "audio_summary_video_source" if self._selected_source_is_video() else "audio_summary_audio_source"
-        output = Path(self.output.text().strip() or "output") / self._audio_output_preview_name(src)
-        items = [
-            f"{self._tr('summary_target')}: {self._audio_format_value()}",
-            f"{self._tr('audio_bitrate')}: {self._audio_bitrate_value() if self._audio_format_value() != 'wav' else self._tr('audio_bitrate_not_used')}",
-            f"{self._tr('audio_sample_rate')}: {self.audio_sample_rate.currentText()}",
-            f"{self._tr('audio_channels')}: {self.audio_channels.currentText()}",
-            f"{self._tr('summary_output_file')}: {output}",
-        ]
-        self.summary_text.setHtml(
-            f"<h3>{html.escape(self._tr('audio_summary_title'))}</h3>"
-            f"<p><b>{html.escape(Path(src).name)}</b></p>"
-            f"<p>{html.escape(self._tr(source_label))}</p>"
-            f"{self._html_list(items)}"
-        )
-        self.guidance_text.clear()
-
-    def _refresh_atlas_right_panel(self, src: str) -> None:
-        output = Path(self.output.text().strip() or "output") / f"{Path(src).stem}_atlas.png"
-        items = [
-            f"{self._tr('atlas_summary_frames')}: {self.atlas_fps.value()}",
-            f"{self._tr('mode')}: {self.atlas_mode.currentText()}",
-            f"{self._tr('atlas_frame_size')}: {self.atlas_res.currentText()}",
-            f"{self._tr('atlas_start_time')}: {self.atlas_start.value():g}s",
-            f"{self._tr('atlas_duration')}: {self._atlas_duration_summary()}",
-            f"{self._tr('summary_output_file')}: {output}",
-        ]
-        self.summary_text.setHtml(
-            f"<h3>{html.escape(self._tr('atlas_summary_title'))}</h3>"
-            f"<p><b>{html.escape(Path(src).name)}</b></p>"
-            f"{self._html_list(items)}"
-        )
-        self.guidance_text.setHtml(f"<p>{html.escape(self._tr('atlas_summary_body'))}</p>")
-
-    def _html_list(self, items: list[str]) -> str:
-        return "<ul>" + "".join(f"<li>{html.escape(item)}</li>" for item in items) + "</ul>"
-
-    def _atlas_duration_summary(self) -> str:
-        duration = self.atlas_duration.value()
-        if duration <= 0:
-            return self._tr("atlas_duration_to_end")
-        return f"{duration:g}s"
-
-    def _selected_video_duration(self) -> float | None:
-        src = self._selected_primary_path()
-        if not src or self._is_audio_only_source(src):
-            return None
-        try:
-            info = self._cached_probe(src)
-        except Exception:
-            return None
-        if not info.is_valid or info.duration <= 0:
-            return None
-        return info.duration
-
-    def _sync_atlas_range_with_selected_video(self) -> None:
-        src = self._selected_primary_path()
-        duration = self._selected_video_duration()
-        if src is None or duration is None:
-            self._atlas_range_source = None
-            self.atlas_start.blockSignals(True)
-            self.atlas_duration.blockSignals(True)
-            self.atlas_start.setMaximum(99999.0)
-            self.atlas_duration.setMaximum(99999.0)
-            self.atlas_start.setValue(0.0)
-            self.atlas_duration.setValue(0.0)
-            self.atlas_duration.blockSignals(False)
-            self.atlas_start.blockSignals(False)
-            return
-
-        is_new_source = src != self._atlas_range_source
-        self._atlas_range_source = src
-        max_start = max(0.0, duration - 0.01)
-        start = 0.0 if is_new_source else min(self.atlas_start.value(), max_start)
-        remaining = max(0.01, duration - start)
-        selected_duration = remaining if is_new_source else min(max(self.atlas_duration.value(), 0.01), remaining)
-
-        self.atlas_start.blockSignals(True)
-        self.atlas_duration.blockSignals(True)
-        self.atlas_start.setMaximum(max_start)
-        self.atlas_start.setValue(start)
-        self.atlas_duration.setMaximum(remaining)
-        self.atlas_duration.setValue(selected_duration)
-        self.atlas_duration.blockSignals(False)
-        self.atlas_start.blockSignals(False)
+        return selected_source_is_video(self)
 
     def _on_atlas_start_changed(self, _value: float) -> None:
-        duration = self._selected_video_duration()
-        if duration is None:
-            return
-        remaining = max(0.01, duration - self.atlas_start.value())
-        self.atlas_duration.setMaximum(remaining)
-        self.atlas_duration.setValue(remaining)
-
-    def _selected_video_info(self):
-        if self.tabs.currentIndex() == 1:
-            return None
-        src = self._selected_primary_path()
-        if not src:
-            return None
-        try:
-            return self._cached_probe(src)
-        except Exception:
-            return None
-
-    def _experience_context(self) -> ExperienceContext:
-        return ExperienceContext(
-            engine_profile=self.engine_profile.currentText(),
-            fmt=self.format.currentText(),
-            quality=self._quality_value(),
-            resolution=self.resolution.currentText().strip(),
-            fps=float(self.fps.value()),
-            keep_audio=self.keep_audio.isChecked(),
-            ogv_mode=self._ogv_mode_value(),
-            output_folder=self.output.text().strip() or "output",
-            source_path=self._selected_primary_path(),
-            language_code=self._lang_code(),
-            keep_original_labels=frozenset(self._all_translations("keep_original")),
-        )
+        on_atlas_start_changed(self)
 
     def _refresh_experience_panels(self, *_args, invalid_video_name: str | None = None) -> None:
-        self._refresh_audio_source_notice()
-        ctx = self._experience_context()
-        title, body = preset_summary(ctx, self._tr)
-        self.format_hint.clear()
-        self.preset_group.setTitle(self._tr("preset_group_title"))
-        self.preset_title.setText(f"<b>{html.escape(title)}</b>")
-        self.preset_body.setText(f"<p>{html.escape(body)}</p>")
-        src = self._selected_primary_path()
-        if not src:
-            self._right_panel_empty_state()
-            return
-        if self.tabs.currentIndex() == 1:
-            self._refresh_audio_right_panel(src)
-            return
-        if src and self._is_audio_only_source(src):
-            name = Path(src).name
-            self.preset_title.setText(f"<b>{html.escape(self._tr('audio_file_selected_title'))}</b>")
-            self.preset_body.setText(f"<p>{html.escape(self._tr('audio_file_selected_body'))}</p>")
-            self.summary_text.setHtml(
-                f"<h3>{html.escape(self._tr('audio_file_selected_title'))}</h3>"
-                f"<p><b>{html.escape(name)}</b></p>"
-                f"<p>{html.escape(self._tr('audio_file_selected_body'))}</p>"
-            )
-            self.guidance_text.clear()
-            return
-        if self.tabs.currentIndex() == 2:
-            self._refresh_atlas_right_panel(src)
-            return
-        if invalid_video_name:
-            self.summary_text.setHtml(summary_html(ctx, None, self._tr))
-            self.guidance_text.setHtml(
-                f"<p>{html.escape(self._tr('invalid_video_file', name=invalid_video_name))}</p>"
-            )
-            return
-        info = self._selected_video_info()
-        self.summary_text.setHtml(summary_html(ctx, info, self._tr))
-        self.guidance_text.setHtml(guidance_html(ctx, info, self._tr))
+        refresh_experience_panels(self, invalid_video_name=invalid_video_name)
 
     def _apply_language(self) -> None:
         apply_language(self)
@@ -729,156 +509,32 @@ class MainWindow(QMainWindow):
             return None
         return resolution
 
-    def _all_file_paths(self) -> list[str]:
-        return [self.files.item(i).text() for i in range(self.files.count())]
-
-    def _selected_file_paths(self) -> list[str]:
-        return [item.text() for item in self.files.selectedItems()]
-
-    def _is_video_source(self, src: str) -> bool:
-        if self._is_audio_only_source(src):
-            return False
-        try:
-            return bool(self._cached_probe(src).is_valid)
-        except Exception:
-            return False
-
-    def _is_audio_export_source(self, src: str) -> bool:
-        if self._is_audio_only_source(src):
-            return True
-        try:
-            info = self._cached_probe(src)
-        except Exception:
-            return False
-        return bool(info.is_valid and info.has_audio)
-
-    def _compatible_inputs_for_current_tab(self, paths: list[str]) -> list[str]:
-        if self.tabs.currentIndex() == 1:
-            return [src for src in paths if self._is_audio_export_source(src)]
-        return [src for src in paths if self._is_video_source(src)]
-
     def _inputs_for_current_operation(self) -> list[str] | None:
-        all_inputs = self._compatible_inputs_for_current_tab(self._all_file_paths())
-        if not all_inputs:
-            show_no_files(self, self._tr)
-            return None
-
-        selected_inputs = self._compatible_inputs_for_current_tab(self._selected_file_paths())
-        if len(all_inputs) <= 1:
-            return selected_inputs or all_inputs
-        if selected_inputs and set(selected_inputs) == set(all_inputs):
-            return all_inputs
-        if not selected_inputs:
-            return all_inputs
-
-        scope = choose_batch_scope(
-            self,
-            self._tr,
-            selected_count=len(selected_inputs),
-            total_count=len(all_inputs),
-        )
-        if scope is None:
-            return None
-        return selected_inputs if scope == "selected" else all_inputs
+        return inputs_for_current_operation(self)
 
     def _cached_probe(self, src: str):
-        cached = self._probe_cache.get(src)
-        if cached is not None:
-            return cached
-        info = probe_video(str(self.ffprobe), src)
-        self._probe_cache[src] = info
-        return info
+        return cached_probe(self, src)
 
     def _set_busy(self, busy: bool):
-        self.btn_action.setEnabled(not busy)
-        self.files.setEnabled(not busy)
-        self.btn_add.setEnabled(not busy)
-        self.btn_remove.setEnabled(not busy)
-        self.btn_clear.setEnabled(not busy)
-        self.btn_toggle_info.setEnabled(not busy)
-        self.output.setEnabled(not busy)
-        self.btn_output_change.setEnabled(not busy)
-        self.btn_output_open.setEnabled(True)
-        self.btn_about.setEnabled(not busy)
-        self.language.setEnabled(not busy)
-        self.tabs.setEnabled(not busy)
-        self.format.setEnabled(not busy)
-        self.quality.setEnabled(not busy)
-        self.resolution.setEnabled(not busy)
-        self.fps.setEnabled(not busy)
-        is_ogv = self.format.currentText().strip().lower() == "ogv"
-        self.engine_profile_label.setEnabled(not busy and is_ogv)
-        self.engine_profile.setEnabled(not busy and is_ogv)
-        self.keep_audio.setEnabled(not busy)
-        self.ogv_mode_label.setEnabled(not busy and is_ogv)
-        self.ogv_mode.setEnabled(not busy and is_ogv)
-        self.audio_format.setEnabled(not busy)
-        self.audio_bitrate.setEnabled(not busy and self._audio_format_value() != "wav")
-        self.audio_bitrate_label.setEnabled(not busy and self._audio_format_value() != "wav")
-        self.audio_sample_rate.setEnabled(not busy)
-        self.audio_channels.setEnabled(not busy)
-        self.atlas_fps.setEnabled(not busy)
-        self.atlas_mode.setEnabled(not busy)
-        self.atlas_res.setEnabled(not busy)
-        self.atlas_start.setEnabled(not busy)
-        self.atlas_duration.setEnabled(not busy)
-        self.btn_cancel.setEnabled(busy)
+        set_busy(self, busy)
 
     def _update_action_button(self) -> None:
-        if self.tabs.currentIndex() == 0:
-            self.btn_action.setText(self._tr("action_convert"))
-        elif self.tabs.currentIndex() == 1:
-            self.btn_action.setText(self._tr("action_audio"))
-        else:
-            self.btn_action.setText(self._tr("action_atlas"))
+        update_action_button(self)
 
     def _set_info_panel_visible(self, visible: bool, *, save: bool = True) -> None:
-        self._info_panel_visible = visible
-        self.right_panel.setVisible(visible)
-        self.btn_toggle_info.blockSignals(True)
-        self.btn_toggle_info.setChecked(not visible)
-        self.btn_toggle_info.blockSignals(False)
-        self._update_info_toggle_button()
-        if visible:
-            self.content_splitter.setSizes([540, 940])
-        else:
-            self.content_splitter.setSizes([1, 0])
-        if save:
-            self.save_ui_settings()
+        set_info_panel_visible(self, visible, save=save)
 
     def _update_info_toggle_button(self) -> None:
-        if self._info_panel_visible:
-            self.btn_toggle_info.setText(self._tr("hide_info_panel"))
-        else:
-            self.btn_toggle_info.setText(self._tr("show_info_panel"))
+        update_info_toggle_button(self)
 
     def _update_ogv_mode_state(self) -> None:
-        is_ogv = self.format.currentText().strip().lower() == "ogv"
-        self.engine_profile_label.setEnabled(is_ogv)
-        self.engine_profile.setEnabled(is_ogv)
-        self.ogv_mode_label.setEnabled(is_ogv)
-        self.ogv_mode.setEnabled(is_ogv)
+        update_ogv_mode_state(self)
 
     def _update_audio_bitrate_state(self) -> None:
-        has_bitrate = self._audio_format_value() != "wav"
-        self.audio_bitrate_label.setEnabled(has_bitrate)
-        self.audio_bitrate.setEnabled(has_bitrate)
+        update_audio_bitrate_state(self)
 
     def _reload_ogv_mode_options(self, engine_profile: str, selected: str | None = None) -> None:
-        current = (selected if selected is not None else self._ogv_mode_value()).strip()
-        options = list(ogv_modes_for_profile(engine_profile))
-        self.ogv_mode.blockSignals(True)
-        self.ogv_mode.clear()
-        for option in options:
-            self.ogv_mode.addItem(self._ogv_mode_label(option), option)
-        idx = self.ogv_mode.findData(current)
-        if idx < 0 and current:
-            idx = self.ogv_mode.findText(current)
-        if idx >= 0:
-            self.ogv_mode.setCurrentIndex(idx)
-        else:
-            self.ogv_mode.setCurrentIndex(0)
-        self.ogv_mode.blockSignals(False)
+        reload_ogv_mode_options(self, engine_profile, selected=selected)
 
     def on_action(self):
         if self.tabs.currentIndex() == 0:
@@ -905,52 +561,20 @@ class MainWindow(QMainWindow):
         self._thread.start()
 
     def _add_files(self, files: list[str]) -> None:
-        result = add_files_to_list(self.files, files)
-
-        if result.added == 0 and result.rejected > 0:
-            self._set_status_key("no_valid_files_added")
-        elif result.added > 0 and result.rejected > 0:
-            self._set_status_key("added_rejected", added=result.added, rejected=result.rejected)
-        elif result.added > 0:
-            self._set_status_key("added_n_files", added=result.added)
-
-        if ensure_initial_selection(self.files):
-            self.refresh_selected_info()
+        add_files(self, files)
 
     def refresh_selected_info(self) -> None:
-        src = selected_primary_path(self.files)
-        self._sync_atlas_range_with_selected_video()
-        if not src:
-            self._refresh_experience_panels()
-            return
-        if self.tabs.currentIndex() == 1:
-            self._refresh_experience_panels()
-            return
-
-        try:
-            info = self._cached_probe(src)
-            if self._is_audio_only_source(src):
-                self._refresh_experience_panels()
-                return
-            if not info.is_valid:
-                self._refresh_experience_panels(invalid_video_name=Path(src).name)
-                return
-            self._refresh_experience_panels()
-        except Exception:
-            self._refresh_experience_panels(invalid_video_name=Path(src).name)
+        refresh_selected_info(self)
 
     def on_add_files(self):
         files, _ = QFileDialog.getOpenFileNames(self, self._tr("select_videos"))
         self._add_files(files)
 
     def on_remove_selected(self):
-        remove_selected_files(self.files, self._probe_cache)
-        self.refresh_selected_info()
+        remove_selected(self)
 
     def on_clear(self):
-        clear_files(self.files, self._probe_cache)
-        self.refresh_selected_info()
-        self._set_status_key("list_cleared")
+        clear_all(self)
 
     def on_toggle_info_panel(self, _checked: bool = False):
         self._set_info_panel_visible(not self._info_panel_visible)
@@ -978,109 +602,13 @@ class MainWindow(QMainWindow):
             self._set_status_key("cancelling")
 
     def on_convert(self):
-        inputs = self._inputs_for_current_operation()
-        if inputs is None:
-            return
-
-        try:
-            fps_val = float(self.fps.value())
-        except ValueError as exc:
-            show_invalid_fps(self, self._tr, str(exc))
-            return
-
-        output = self._ensure_output_directory(notify=True)
-        if output is None:
-            return
-        resolution = self._validate_resolution_from_ui()
-        if resolution is None:
-            return
-
-        paths = BatchPaths(ffmpeg=str(self.ffmpeg), ffprobe=str(self.ffprobe), output_dir=output)
-        config = ConvertBatchConfig(
-            engine_profile=self.engine_profile.currentText(),
-            fmt=self.format.currentText(),
-            quality=self._quality_value(),
-            resolution=resolution,
-            fps=fps_val,
-            keep_audio=self.keep_audio.isChecked(),
-            ogv_mode=self._ogv_mode_value(),
-        )
-        probe_cache = ProbeCache(
-            str(self.ffprobe),
-            {src: self._probe_cache[src] for src in inputs if src in self._probe_cache},
-        )
-
-        def _run(cancel_event: Event, progress_cb, status_cb):
-            convert_batch(
-                inputs,
-                paths,
-                config,
-                probe_cache=probe_cache,
-                cancel_event=cancel_event,
-                progress_cb=progress_cb,
-                status_cb=status_cb,
-            )
-
-        self._start_worker(_run)
+        start_convert(self)
 
     def on_audio(self):
-        inputs = self._inputs_for_current_operation()
-        if inputs is None:
-            return
-
-        output = self._ensure_output_directory(notify=True)
-        if output is None:
-            return
-
-        paths = BatchPaths(ffmpeg=str(self.ffmpeg), ffprobe=str(self.ffprobe), output_dir=output)
-        config = AudioBatchConfig(
-            fmt=self._audio_format_value(),
-            bitrate=self._audio_bitrate_value(),
-            sample_rate=self._audio_sample_rate_value(),
-            channels=self._audio_channels_value(),
-        )
-
-        def _run(cancel_event: Event, progress_cb, status_cb):
-            convert_audio_batch(
-                inputs,
-                paths,
-                config,
-                cancel_event=cancel_event,
-                progress_cb=progress_cb,
-                status_cb=status_cb,
-            )
-
-        self._start_worker(_run)
+        start_audio(self)
 
     def on_atlas(self):
-        inputs = self._inputs_for_current_operation()
-        if inputs is None:
-            return
-
-        output = self._ensure_output_directory(notify=True)
-        if output is None:
-            return
-
-        paths = BatchPaths(ffmpeg=str(self.ffmpeg), ffprobe=str(self.ffprobe), output_dir=output)
-        config = AtlasBatchConfig(
-            fps=self.atlas_fps.value(),
-            mode=self._atlas_mode_value(),
-            resolution=self._atlas_resolution_value(),
-            start_time=self.atlas_start.value(),
-            duration=self.atlas_duration.value(),
-        )
-
-        def _run(cancel_event: Event, progress_cb, status_cb):
-            generate_atlas_batch(
-                inputs,
-                paths,
-                config,
-                cancel_event=cancel_event,
-                progress_cb=progress_cb,
-                status_cb=status_cb,
-            )
-
-        self._start_worker(_run)
+        start_atlas(self)
 
 
 def main() -> None:
