@@ -33,6 +33,7 @@ htmlcov/
 .env
 .env.*
 .python-version
+output
 
 # IDE and OS files
 .idea/

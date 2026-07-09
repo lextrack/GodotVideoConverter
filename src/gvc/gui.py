@@ -414,6 +414,7 @@ class MainWindow(QMainWindow):
             "mobile optimized": "preset_mobile_optimized_title",
             "high compression": "preset_high_compression_title",
             "love2d compatibility": "preset_love2d_compatibility_title",
+            "löve compatibility": "preset_love2d_compatibility_title",
             "lightweight": "preset_lightweight_title",
         }.get(mode_key, "")
 

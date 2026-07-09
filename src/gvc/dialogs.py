@@ -34,8 +34,11 @@ def show_invalid_resolution(parent, tr, value: str) -> None:
     )
 
 
-def show_no_files(parent, tr) -> None:
-    show_warning(parent, tr("no_files_title"), tr("no_files_text"))
+def show_no_files(parent, tr, details: list[str] | None = None) -> None:
+    message = tr("no_files_text")
+    if details:
+        message = f"{message}\n\n{tr('no_files_why')}\n- " + "\n- ".join(details)
+    show_warning(parent, tr("no_files_title"), message)
 
 
 def show_invalid_fps(parent, tr, message: str) -> None:

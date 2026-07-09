@@ -4,9 +4,9 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 
-from gvc.process_utils import cleanup_temp_output, temp_output_path
+from gvc.process_utils import cleanup_temp_output, stripped_metadata_args, temp_output_path
 from gvc.probe import probe_video
-from gvc.runner import run_ffmpeg
+from gvc.runner import raise_if_cancelled, run_ffmpeg
 
 
 @dataclass(slots=True)
@@ -82,9 +82,11 @@ def _generate_sprite_atlas_ffmpeg(
     cancel_event=None,
     on_progress=None,
 ) -> AtlasResult:
+    raise_if_cancelled(cancel_event)
     info = probe_video(ffprobe_path, input_file)
     if not info.is_valid:
         raise ValueError("invalid video file")
+    raise_if_cancelled(cancel_event)
 
     start = max(0.0, float(start_time or 0.0))
     requested_duration = max(0.0, float(duration or 0.0))
@@ -109,6 +111,7 @@ def _generate_sprite_atlas_ffmpeg(
 
     _validate_output_size(cols, rows, frame_w, frame_h)
     filters.append(f"tile={cols}x{rows}")
+    raise_if_cancelled(cancel_event)
 
     out = Path(output_file)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -118,7 +121,8 @@ def _generate_sprite_atlas_ffmpeg(
     args = ["-y"]
     if start > 0:
         args.extend(["-ss", f"{start:g}"])
-    args.extend(["-i", input_file])
+    args.extend(["-i", input_file, "-map", "0:V:0"])
+    args.extend(stripped_metadata_args())
     if requested_duration > 0:
         args.extend(["-t", f"{effective_duration:g}"])
     args.extend(["-frames:v", "1", "-vf", ",".join(filters), str(temp_out)])
@@ -130,6 +134,7 @@ def _generate_sprite_atlas_ffmpeg(
             on_progress=on_progress,
             cancel_event=cancel_event,
         )
+        raise_if_cancelled(cancel_event)
         temp_out.replace(out)
     except Exception:
         cleanup_temp_output(temp_out)
@@ -158,6 +163,7 @@ def generate_sprite_atlas(
     cancel_event=None,
     on_progress=None,
 ) -> AtlasResult:
+    raise_if_cancelled(cancel_event)
     src = Path(input_file)
     if not src.exists() or not src.is_file():
         raise FileNotFoundError(f"Input file not found: {src.name}")

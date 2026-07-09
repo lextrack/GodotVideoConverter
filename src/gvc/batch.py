@@ -10,6 +10,7 @@ from gvc.atlas import generate_sprite_atlas
 from gvc.convert import ConvertOptions, convert_video
 from gvc.models import VideoInfo
 from gvc.probe import probe_video
+from gvc.runner import raise_if_cancelled
 
 
 ProgressCallback = Callable[[int], None]
@@ -89,13 +90,13 @@ def convert_batch(
     ext = _extension_for_format(config.fmt)
 
     for idx, src in enumerate(inputs, start=1):
-        if cancel_event and cancel_event.is_set():
-            raise RuntimeError("conversion cancelled by user")
+        raise_if_cancelled(cancel_event)
 
         source_name = Path(src).name
         _status(status_cb, "preparing_status", index=idx, total=total, name=source_name)
 
         info = cache.get(src)
+        raise_if_cancelled(cancel_event)
         if is_heavy_video(info):
             _status(status_cb, "heavy_video_status", name=source_name)
 
@@ -137,8 +138,7 @@ def generate_atlas_batch(
     total = len(inputs)
 
     for idx, src in enumerate(inputs, start=1):
-        if cancel_event and cancel_event.is_set():
-            raise RuntimeError("atlas generation cancelled by user")
+        raise_if_cancelled(cancel_event)
 
         source_name = Path(src).name
         dst = next_available_output_path(paths.output_dir, Path(src).stem, "atlas", ".png")
@@ -175,8 +175,7 @@ def convert_audio_batch(
     ext = audio_extension(config.fmt)
 
     for idx, src in enumerate(inputs, start=1):
-        if cancel_event and cancel_event.is_set():
-            raise RuntimeError("audio conversion cancelled by user")
+        raise_if_cancelled(cancel_event)
 
         source_name = Path(src).name
         dst = next_available_output_path(paths.output_dir, Path(src).stem, "audio", ext)

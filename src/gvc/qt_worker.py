@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import CancelledError
 from threading import Event
 from typing import Callable
 
@@ -26,7 +27,7 @@ class Worker(QObject):
             self._fn(self._cancel_event, self.progress.emit, self.status.emit)
             self.done.emit(True)
         except Exception as exc:
-            if self._cancel_event.is_set() or "cancel" in str(exc).lower():
+            if isinstance(exc, CancelledError) or self._cancel_event.is_set():
                 self.status.emit({"key": "cancelled", "kwargs": {}})
             else:
                 self.status.emit({"error": str(exc)})

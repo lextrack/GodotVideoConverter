@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from gvc.media_probe import probe_media_json
-from gvc.process_utils import cleanup_temp_output, temp_output_path
-from gvc.runner import run_ffmpeg
+from gvc.process_utils import cleanup_temp_output, stripped_metadata_args, temp_output_path
+from gvc.runner import raise_if_cancelled, run_ffmpeg
 
 
 AUDIO_FORMATS = ("ogg", "mp3", "aac", "wav")
@@ -54,6 +54,7 @@ def convert_audio(
     on_status=None,
     cancel_event=None,
 ) -> str:
+    raise_if_cancelled(cancel_event)
     src = Path(input_file)
     if not src.exists() or not src.is_file():
         raise FileNotFoundError(f"Input file not found: {src.name}")
@@ -71,16 +72,19 @@ def convert_audio(
     if on_status:
         on_status("probe_input")
     total_seconds = probe_audio_duration(ffprobe_path, input_file) or None
+    raise_if_cancelled(cancel_event)
 
     if on_status:
         on_status("prepare_filters")
-    args = ["-y", "-i", input_file, "-vn"]
+    args = ["-y", "-i", input_file, "-map", "0:a:0?", "-vn"]
+    args.extend(stripped_metadata_args())
     args.extend(_audio_codec_args(fmt, bitrate))
     if sample_rate:
         args.extend(["-ar", sample_rate])
     if channels:
         args.extend(["-ac", channels])
     args.append(str(temp_out))
+    raise_if_cancelled(cancel_event)
 
     try:
         run_ffmpeg(
@@ -91,6 +95,7 @@ def convert_audio(
             on_status=on_status,
             cancel_event=cancel_event,
         )
+        raise_if_cancelled(cancel_event)
         temp_out.replace(final_out)
         return str(final_out)
     except Exception:

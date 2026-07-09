@@ -3,10 +3,12 @@ from __future__ import annotations
 from gvc.batch import AtlasBatchConfig, AudioBatchConfig, BatchPaths, ConvertBatchConfig
 from gvc.batch_jobs import build_atlas_job, build_audio_job, build_convert_job
 from gvc.dialogs import show_invalid_fps
+from gvc.gui_selection import inputs_for_operation
+from gvc.operation_selection import OperationKind
 
 
 def start_convert(win) -> None:
-    inputs = win._inputs_for_current_operation()
+    inputs = inputs_for_operation(win, OperationKind.CONVERT_VIDEO)
     if inputs is None:
         return
 
@@ -44,7 +46,7 @@ def start_convert(win) -> None:
 
 
 def start_audio(win) -> None:
-    inputs = win._inputs_for_current_operation()
+    inputs = inputs_for_operation(win, OperationKind.CONVERT_AUDIO)
     if inputs is None:
         return
 
@@ -63,7 +65,7 @@ def start_audio(win) -> None:
 
 
 def start_atlas(win) -> None:
-    inputs = win._inputs_for_current_operation()
+    inputs = inputs_for_operation(win, OperationKind.GENERATE_ATLAS)
     if inputs is None:
         return
 

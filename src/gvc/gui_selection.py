@@ -5,12 +5,21 @@ from pathlib import Path
 from gvc.dialogs import choose_batch_scope, show_no_files
 from gvc.gui_experience import sync_atlas_range_with_selected_video
 from gvc.file_selection import (
-    AUDIO_EXTENSIONS,
     add_files_to_list,
     clear_files,
     ensure_initial_selection,
     remove_selected_files,
     selected_primary_path,
+)
+from gvc.operation_selection import (
+    MediaKind,
+    OperationKind,
+    detect_media_kind,
+    evaluate_sources_for_operation,
+    evaluate_source_for_operation,
+    operation_for_tab_index,
+    resolve_operation_inputs,
+    summarize_ineligible_results,
 )
 from gvc.probe import probe_video
 
@@ -29,23 +38,14 @@ def cached_probe(win, src: str):
 
 
 def is_audio_only_source(win, src: str) -> bool:
-    if Path(src).suffix.lower() in AUDIO_EXTENSIONS:
-        return True
-    try:
-        info = cached_probe(win, src)
-    except Exception:
-        return False
-    return bool(info.has_audio and info.width <= 0 and info.height <= 0)
+    return detect_media_kind(src, probe=lambda path: cached_probe(win, path)) == MediaKind.AUDIO_ONLY
 
 
 def selected_source_is_video(win) -> bool:
     src = selected_primary(win)
-    if not src or is_audio_only_source(win, src):
+    if not src:
         return False
-    try:
-        return bool(cached_probe(win, src).is_valid)
-    except Exception:
-        return False
+    return detect_media_kind(src, probe=lambda path: cached_probe(win, path)) == MediaKind.VIDEO
 
 
 def all_file_paths(win) -> list[str]:
@@ -57,53 +57,70 @@ def selected_file_paths(win) -> list[str]:
 
 
 def is_video_source(win, src: str) -> bool:
-    if is_audio_only_source(win, src):
-        return False
-    try:
-        return bool(cached_probe(win, src).is_valid)
-    except Exception:
-        return False
+    result = evaluate_source_for_operation(
+        src,
+        OperationKind.CONVERT_VIDEO,
+        probe=lambda path: cached_probe(win, path),
+    )
+    return result.allowed
 
 
 def is_audio_export_source(win, src: str) -> bool:
-    if is_audio_only_source(win, src):
-        return True
-    try:
-        info = cached_probe(win, src)
-    except Exception:
-        return False
-    return bool(info.is_valid and info.has_audio)
+    result = evaluate_source_for_operation(
+        src,
+        OperationKind.CONVERT_AUDIO,
+        probe=lambda path: cached_probe(win, path),
+    )
+    return result.allowed
+
+
+def compatible_inputs_for_operation(win, paths: list[str], operation: OperationKind) -> list[str]:
+    return [
+        src
+        for src in paths
+        if evaluate_source_for_operation(
+            src,
+            operation,
+            probe=lambda path: cached_probe(win, path),
+        ).allowed
+    ]
 
 
 def compatible_inputs_for_current_tab(win, paths: list[str]) -> list[str]:
-    if win.tabs.currentIndex() == 1:
-        return [src for src in paths if is_audio_export_source(win, src)]
-    return [src for src in paths if is_video_source(win, src)]
+    return compatible_inputs_for_operation(win, paths, operation_for_tab_index(win.tabs.currentIndex()))
+
+
+def inputs_for_operation(win, operation: OperationKind) -> list[str] | None:
+    all_paths = all_file_paths(win)
+    inputs = resolve_operation_inputs(
+        all_paths,
+        selected_file_paths(win),
+        operation,
+        probe=lambda path: cached_probe(win, path),
+        choose_scope=lambda selected_count, total_count: choose_batch_scope(
+            win,
+            win._tr,
+            selected_count=selected_count,
+            total_count=total_count,
+        ),
+    )
+    if inputs == []:
+        results = evaluate_sources_for_operation(
+            all_paths,
+            operation,
+            probe=lambda path: cached_probe(win, path),
+        )
+        details = [
+            win._tr("no_files_reason_line", count=count, reason=win._tr(f"eligibility_reason_{reason}"))
+            for reason, count in summarize_ineligible_results(results)
+        ]
+        show_no_files(win, win._tr, details=details)
+        return None
+    return inputs
 
 
 def inputs_for_current_operation(win) -> list[str] | None:
-    all_inputs = compatible_inputs_for_current_tab(win, all_file_paths(win))
-    if not all_inputs:
-        show_no_files(win, win._tr)
-        return None
-
-    selected_inputs = compatible_inputs_for_current_tab(win, selected_file_paths(win))
-    if len(all_inputs) <= 1:
-        return selected_inputs or all_inputs
-    if selected_inputs and set(selected_inputs) == set(all_inputs):
-        return all_inputs
-    if not selected_inputs:
-        return all_inputs
-
-    scope = choose_batch_scope(
-        win,
-        win._tr,
-        selected_count=len(selected_inputs),
-        total_count=len(all_inputs),
-    )
-    if scope is None:
-        return None
-    return selected_inputs if scope == "selected" else all_inputs
+    return inputs_for_operation(win, operation_for_tab_index(win.tabs.currentIndex()))
 
 
 def add_files(win, files: list[str]) -> None:

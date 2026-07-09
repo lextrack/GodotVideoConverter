@@ -213,17 +213,38 @@ def translate_runtime_error(message: str, language: str) -> str:
     return text
 
 
+def _localized_recommendation_presets(language: str) -> dict[str, str]:
+    return {
+        "Official Godot": ui_text(language, "preset_official_godot_title"),
+        "Seek Friendly": ui_text(language, "preset_seek_friendly_title"),
+        "Ideal Loop": ui_text(language, "preset_ideal_loop_title"),
+        "Mobile Optimized": ui_text(language, "preset_mobile_optimized_title"),
+        "High Compression": ui_text(language, "preset_high_compression_title"),
+        "LÖVE Compatibility": ui_text(language, "preset_love2d_compatibility_title"),
+        "Love2D Compatibility": ui_text(language, "preset_love2d_compatibility_title"),
+        "Lightweight": ui_text(language, "preset_lightweight_title"),
+    }
+
+
+def _localize_recommendation_preset_names(text: str, language: str) -> str:
+    out = text
+    for source, localized in _localized_recommendation_presets(language).items():
+        out = out.replace(f"'{source}'", f"'{localized}'")
+        out = out.replace(source, localized)
+    return out
+
+
 def translate_recommendations(text: str, language: str) -> str:
     profile = RECOMMENDATION_PROFILES.get(language_label_to_code(language))
     if profile is None:
-        return text
+        return _localize_recommendation_preset_names(text, language)
 
     out = text
     for source, replacement in profile.replacements.items():
         out = out.replace(source, replacement)
     for pattern, replacement in profile.regex_rules:
         out = re.sub(pattern, replacement, out)
-    return out
+    return _localize_recommendation_preset_names(out, language)
 
 
 _report_catalog_issues_once()

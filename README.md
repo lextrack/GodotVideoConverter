@@ -27,6 +27,7 @@ This project is a Python rewrite of the original .NET tool I made some time ago.
 - `mp4`, `webm`, and `gif` are also available
 - Quality, FPS, resolution, audio, and OGV mode can be adjusted from the GUI.
 - Each engine has its own OGV modes.
+- Some `.mp4` files downloaded directly from YouTube Music may include unusual embedded artwork or metadata. On Windows, these files can trigger `.ogv` preview or file-lock issues in Explorer even when the converted file itself is valid and plays correctly in Godot.
 
 ### Audio Conversion
 

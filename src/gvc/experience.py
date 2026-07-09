@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from gvc.convert import ENGINE_PROFILE_LOVE2D, normalize_engine_profile
 from gvc.models import VideoInfo
 from gvc.recommendations import get_engine_recommendation_sections
 
@@ -47,6 +48,7 @@ def preset_summary(ctx: ExperienceContext, tr: Translator) -> tuple[str, str]:
         "mobile optimized": ("preset_mobile_optimized_title", "preset_mobile_optimized_body"),
         "high compression": ("preset_high_compression_title", "preset_high_compression_body"),
         "love2d compatibility": ("preset_love2d_compatibility_title", "preset_love2d_compatibility_body"),
+        "löve compatibility": ("preset_love2d_compatibility_title", "preset_love2d_compatibility_body"),
         "lightweight": ("preset_lightweight_title", "preset_lightweight_body"),
     }
     title_key, body_key = preset_map.get(
@@ -111,7 +113,7 @@ def summary_expectation(ctx: ExperienceContext, tr: Translator) -> str:
             return tr("expect_loop")
         if mode == "seek friendly":
             return tr("expect_seek")
-        if mode in {"mobile optimized", "love2d compatibility"}:
+        if mode in {"mobile optimized", "love2d compatibility", "löve compatibility"}:
             return tr("expect_safe")
         if mode in {"high compression", "lightweight"}:
             return tr("expect_small")
@@ -124,7 +126,7 @@ def summary_expectation(ctx: ExperienceContext, tr: Translator) -> str:
 
 
 def _engine_key(ctx: ExperienceContext) -> str:
-    return "love2d" if ctx.engine_profile.strip().lower() == "love2d" else "godot"
+    return "love2d" if normalize_engine_profile(ctx.engine_profile) == ENGINE_PROFILE_LOVE2D else "godot"
 
 
 def _format_key(ctx: ExperienceContext) -> str:

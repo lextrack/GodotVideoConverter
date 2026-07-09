@@ -3,12 +3,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from gvc.process_utils import cleanup_temp_output, temp_output_path
+from gvc.process_utils import cleanup_temp_output, stripped_metadata_args, temp_output_path
 from gvc.probe import probe_video
-from gvc.runner import run_ffmpeg
+from gvc.runner import raise_if_cancelled, run_ffmpeg
 
 ENGINE_PROFILE_GODOT = "Godot"
-ENGINE_PROFILE_LOVE2D = "Love2D"
+ENGINE_PROFILE_LOVE2D = "LÖVE"
 ENGINE_PROFILES = (ENGINE_PROFILE_GODOT, ENGINE_PROFILE_LOVE2D)
 
 GODOT_OGV_MODES = (
@@ -20,7 +20,7 @@ GODOT_OGV_MODES = (
 )
 
 LOVE2D_OGV_MODES = (
-    "Love2D Compatibility",
+    "LÖVE Compatibility",
     "Seek Friendly",
     "Ideal Loop",
     "Lightweight",
@@ -177,7 +177,7 @@ def _video_codec_args(fmt: str, quality: str, ogv_mode: str, engine_profile: str
         "controlled bitrate": ["-pix_fmt", "yuv420p", "-g", "15", "-keyint_min", "5", "-b:v", "1200k", "-maxrate", "1500k", "-bufsize", "2000k"],
     }
     love2d_modes = {
-        "love2d compatibility": [
+        "löve compatibility": [
             "-pix_fmt",
             "yuv420p",
             "-g",
@@ -217,7 +217,17 @@ def _video_codec_args(fmt: str, quality: str, ogv_mode: str, engine_profile: str
             "-keyint_min",
             "36",
         ],
-        # Backward compatibility if an older config is reused under Love2D only.
+        # Backward compatibility if an older config is reused under LÖVE only.
+        "love2d compatibility": [
+            "-pix_fmt",
+            "yuv420p",
+            "-g",
+            "24",
+            "-keyint_min",
+            "12",
+            "-fps_mode",
+            "cfr",
+        ],
         "standard": ["-pix_fmt", "yuv420p", "-g", "24", "-keyint_min", "12"],
     }
 
@@ -225,7 +235,7 @@ def _video_codec_args(fmt: str, quality: str, ogv_mode: str, engine_profile: str
     mode_key = ogv_mode.strip().lower()
     video, audio = _ogv_quality_args(quality)
     if profile == ENGINE_PROFILE_LOVE2D:
-        extra = list(love2d_modes.get(mode_key, love2d_modes["love2d compatibility"]))
+        extra = list(love2d_modes.get(mode_key, love2d_modes["löve compatibility"]))
     else:
         extra = list(godot_modes.get(mode_key, godot_modes["official godot"]))
 
@@ -263,7 +273,7 @@ def validate_resolution(value: str | None) -> None:
         raise ValueError("output resolution must use WIDTHxHEIGHT, for example 1280x720")
 
 
-def _build_filter_chain(fmt: str, fps: float | None, resolution: str | None, quality: str) -> str | None:
+def _build_filter_args(fmt: str, fps: float | None, resolution: str | None, quality: str) -> list[str]:
     filters: list[str] = []
 
     parsed = _parse_resolution(resolution)
@@ -288,17 +298,18 @@ def _build_filter_chain(fmt: str, fps: float | None, resolution: str | None, qua
         gif_chain = [f"fps={fps}"]
         if parsed:
             w, h = parsed
-            gif_chain.append(f"scale={w}:{h}:force_original_aspect_ratio=decrease")
-        gif_chain.append("scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos")
-        gif_chain.append("split[s0][s1]")
-        gif_chain.append(f"[s0]palettegen=max_colors={max_colors}:stats_mode=diff[p]")
-        if dither == "bayer":
-            gif_chain.append("[s1][p]paletteuse=dither=bayer:bayer_scale=5")
+            gif_chain.append(f"scale={w}:{h}:force_original_aspect_ratio=decrease:flags=lanczos")
         else:
-            gif_chain.append(f"[s1][p]paletteuse=dither={dither}")
-        return ",".join(gif_chain)
+            gif_chain.append("scale=iw:ih:flags=lanczos")
+        graph = f"[0:v]{','.join(gif_chain)},split[s0][s1];"
+        graph += f"[s0]palettegen=max_colors={max_colors}:stats_mode=diff[p];"
+        if dither == "bayer":
+            graph += "[s1][p]paletteuse=dither=bayer:bayer_scale=5[v]"
+        else:
+            graph += f"[s1][p]paletteuse=dither={dither}[v]"
+        return ["-filter_complex", graph, "-map", "[v]"]
 
-    return ",".join(filters) if filters else None
+    return ["-vf", ",".join(filters)] if filters else []
 
 
 def _validate_video_fps(fps: float | None) -> None:
@@ -317,6 +328,7 @@ def convert_video(
     on_status=None,
     cancel_event=None,
 ) -> str:
+    raise_if_cancelled(cancel_event)
     src = Path(input_file)
     if not src.exists() or not src.is_file():
         raise FileNotFoundError(f"Input file not found: {src.name}")
@@ -331,6 +343,7 @@ def convert_video(
     if on_status:
         on_status("probe_input")
     info = probe_video(ffprobe_path, input_file)
+    raise_if_cancelled(cancel_event)
     total_seconds = info.duration if info.duration > 0 else None
 
     codec_video, codec_audio, extra = _video_codec_args(options.fmt, options.quality, options.ogv_mode, options.engine_profile)
@@ -339,11 +352,17 @@ def convert_video(
 
     if on_status:
         on_status("prepare_filters")
-    filter_chain = _build_filter_chain(options.fmt, options.fps, options.resolution, options.quality)
+    filter_args = _build_filter_args(options.fmt, options.fps, options.resolution, options.quality)
+    raise_if_cancelled(cancel_event)
 
     args = ["-y", "-i", input_file]
-    if filter_chain:
-        args.extend(["-vf", filter_chain])
+    if options.fmt != "gif":
+        args.extend(["-map", "0:V:0"])
+    if options.keep_audio and options.fmt != "gif":
+        args.extend(["-map", "0:a:0?"])
+    args.extend(["-sn", "-dn", "-ignore_unknown"])
+    args.extend(stripped_metadata_args())
+    args.extend(filter_args)
 
     args.extend(codec_video)
     args.extend(codec_audio)
@@ -359,6 +378,7 @@ def convert_video(
             on_status=on_status,
             cancel_event=cancel_event,
         )
+        raise_if_cancelled(cancel_event)
         temp_out.replace(final_out)
         return str(final_out)
     except Exception:

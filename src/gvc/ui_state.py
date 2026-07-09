@@ -5,6 +5,7 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QComboBox
 
+from gvc.convert import normalize_engine_profile
 from gvc.settings import AppSettings, load_settings, save_settings
 
 
@@ -19,10 +20,10 @@ def apply_saved_settings(win) -> None:
 def apply_settings(win, settings: AppSettings) -> None:
     _set_combo_value(win.language, settings.selected_language, "English")
     win.output.setText(settings.output_folder or str(Path.cwd() / "output"))
-    _set_combo_value(win.engine_profile, settings.selected_engine_profile, "Godot")
+    _set_combo_value(win.engine_profile, normalize_engine_profile(settings.selected_engine_profile), "Godot")
     _set_combo_value(win.format, settings.selected_format, "ogv")
     _set_combo_data_value(win.quality, settings.selected_quality, "optimized")
-    _set_editable_combo_value(win.resolution, settings.selected_resolution, "Keep original")
+    _set_combo_value(win.resolution, settings.selected_resolution, "Keep original")
     win.fps.setValue(coerce_video_fps(settings.fps))
     win.keep_audio.setChecked(settings.keep_audio)
     win._reload_ogv_mode_options(win.engine_profile.currentText(), settings.selected_ogv_mode)
@@ -104,11 +105,3 @@ def _set_combo_data_value(combo: QComboBox, value: str, fallback: str) -> None:
         return
     _set_combo_value(combo, value, fallback)
 
-
-def _set_editable_combo_value(combo: QComboBox, value: str, fallback: str) -> None:
-    chosen = (value or "").strip() or fallback
-    idx = combo.findText(chosen)
-    if idx >= 0:
-        combo.setCurrentIndex(idx)
-        return
-    combo.setCurrentText(chosen)

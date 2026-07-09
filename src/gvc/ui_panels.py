@@ -202,7 +202,7 @@ def _build_convert_controls(win, convert_layout: QVBoxLayout, engine_profiles: t
         win.quality.addItem(quality, quality)
     win.quality.setMinimumWidth(130)
     win.resolution = QComboBox()
-    win.resolution.setEditable(True)
+    win.resolution.setEditable(False)
     win.resolution.setMinimumWidth(170)
     win.resolution.addItems(list(RESOLUTION_PRESETS))
     win.resolution.setCurrentText("Keep original")
