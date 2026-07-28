@@ -13,7 +13,7 @@ def start_convert(win) -> None:
         return
 
     try:
-        fps_val = float(win.fps.value())
+        fps_val = float(win.fps.currentData())
     except ValueError as exc:
         show_invalid_fps(win, win._tr, str(exc))
         return

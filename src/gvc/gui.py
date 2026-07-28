@@ -108,8 +108,116 @@ def _apply_default_theme(app: QApplication) -> None:
             font-family: "Inter", "Noto Sans CJK SC", "Microsoft YaHei", "PingFang SC", "WenQuanYi Micro Hei", sans-serif;
             font-size: 10.5pt;
         }
-        QLabel[gvcRole="fieldLabel"] {
+        QMainWindow, QWidget#centralWidget {
+            background: #202227;
+        }
+        QGroupBox {
+            border: 1px solid #3a414d;
+            border-radius: 8px;
+            margin-top: 12px;
+            padding: 12px 10px 10px 10px;
+            color: #dce6f4;
+            font-weight: 600;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 10px;
+            padding: 0 5px;
             color: #9ecbff;
+        }
+        QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, QTextEdit, QListWidget {
+            background: #181a1e;
+            border: 1px solid #3a414d;
+            border-radius: 6px;
+            padding: 6px 8px;
+            selection-background-color: #58a6ff;
+            selection-color: #11151c;
+        }
+        QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus, QTextEdit:focus, QListWidget:focus {
+            border: 1px solid #58a6ff;
+        }
+        QComboBox::drop-down {
+            border: 0;
+            width: 24px;
+        }
+        QPushButton {
+            background: #303640;
+            border: 1px solid #46505f;
+            border-radius: 6px;
+            padding: 7px 12px;
+            min-height: 20px;
+        }
+        QPushButton:hover {
+            background: #3a4351;
+            border-color: #64748b;
+        }
+        QPushButton:pressed {
+            background: #252b34;
+        }
+        QPushButton:disabled {
+            color: #707887;
+            background: #292d34;
+            border-color: #343a44;
+        }
+        QPushButton[gvcRole="primaryAction"] {
+            background: #2f81f7;
+            border-color: #58a6ff;
+            color: white;
+            font-weight: 700;
+            padding: 9px 20px;
+            min-width: 190px;
+        }
+        QPushButton[gvcRole="primaryAction"]:hover {
+            background: #4691f6;
+            border-color: #9ecbff;
+        }
+        QPushButton[gvcRole="secondaryAction"] {
+            color: #c4ccd8;
+        }
+        QTabWidget::pane {
+            border: 1px solid #3a414d;
+            border-radius: 7px;
+            top: -1px;
+            background: #24272d;
+        }
+        QTabBar::tab {
+            background: #2a2e35;
+            border: 1px solid #3a414d;
+            border-bottom: 0;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            padding: 8px 14px;
+            margin-right: 3px;
+            color: #b8c0cc;
+        }
+        QTabBar::tab:selected {
+            background: #24272d;
+            color: #9ecbff;
+            font-weight: 600;
+        }
+        QProgressBar {
+            min-height: 10px;
+            border: 1px solid #3a414d;
+            border-radius: 5px;
+            background: #181a1e;
+            text-align: center;
+            color: #e6edf3;
+        }
+        QProgressBar::chunk {
+            border-radius: 4px;
+            background: #35b987;
+        }
+        QLabel[gvcRole="status"] {
+            color: #b8c0cc;
+            padding: 1px 3px;
+        }
+        QSplitter::handle {
+            background: #303640;
+            margin: 5px 4px;
+            border-radius: 2px;
+        }
+        QLabel[gvcRole="fieldLabel"] {
+            color: #b8c0cc;
             font-weight: 600;
         }
         QLabel[gvcRole="fieldLabel"]:disabled {
@@ -120,6 +228,10 @@ def _apply_default_theme(app: QApplication) -> None:
         }
         QLabel[gvcRole="fieldHint"]:disabled {
             color: #687386;
+        }
+        QLabel[gvcRole="emptyDropHint"] {
+            color: #9aa9bc;
+            font-size: 12pt;
         }
         """
     )
@@ -184,8 +296,8 @@ class MainWindow(QMainWindow):
         self.quality.currentTextChanged.connect(self._refresh_experience_panels)
         self.resolution.currentTextChanged.connect(self.save_ui_settings)
         self.resolution.currentTextChanged.connect(self._refresh_experience_panels)
-        self.fps.valueChanged.connect(self.save_ui_settings)
-        self.fps.valueChanged.connect(self._refresh_experience_panels)
+        self.fps.currentIndexChanged.connect(self.save_ui_settings)
+        self.fps.currentIndexChanged.connect(self._refresh_experience_panels)
         self.keep_audio.toggled.connect(self.save_ui_settings)
         self.keep_audio.toggled.connect(self.refresh_selected_info)
         self.ogv_mode.currentTextChanged.connect(self.save_ui_settings)

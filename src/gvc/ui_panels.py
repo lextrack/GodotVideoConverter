@@ -65,6 +65,35 @@ AUDIO_FORMAT_OPTIONS = ("ogg", "mp3", "aac", "wav")
 AUDIO_BITRATE_OPTIONS = ("96k", "128k", "160k", "192k", "256k", "320k")
 AUDIO_SAMPLE_RATE_OPTIONS = ("keep", "44100", "48000")
 AUDIO_CHANNEL_OPTIONS = ("keep", "mono", "stereo")
+VIDEO_FPS_OPTIONS = ("5", "10", "12", "15", "20", "23.976", "24", "25", "29.97", "30", "48", "50", "59.94", "60")
+
+
+class EmptyStateListWidget(QListWidget):
+    """File list with a centered prompt shown only while it is empty."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._empty_state_label = QLabel(self.viewport())
+        self._empty_state_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_state_label.setWordWrap(True)
+        self._empty_state_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self._empty_state_label.setProperty("gvcRole", "emptyDropHint")
+
+        model = self.model()
+        model.rowsInserted.connect(self._update_empty_state)
+        model.rowsRemoved.connect(self._update_empty_state)
+        model.modelReset.connect(self._update_empty_state)
+        self._update_empty_state()
+
+    def set_empty_state_text(self, text: str) -> None:
+        self._empty_state_label.setText(text)
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._empty_state_label.setGeometry(self.viewport().rect())
+
+    def _update_empty_state(self, *_args) -> None:
+        self._empty_state_label.setVisible(self.count() == 0)
 
 
 def _mark_field_labels(*labels: QLabel) -> None:
@@ -102,7 +131,9 @@ def build_main_window_ui(win, language_labels: tuple[str, ...], engine_profiles:
     _build_info_panel(win)
 
     win.progress = QProgressBar()
+    win.progress.setTextVisible(True)
     win.status = QLabel("Ready")
+    win.status.setProperty("gvcRole", "status")
     layout.addWidget(win.progress)
     layout.addWidget(win.status)
 
@@ -116,11 +147,14 @@ def _build_files_row(win, left: QVBoxLayout) -> None:
     files_group_layout.setSpacing(6)
     win.files_hint = QLabel("Drag media files here or use Add Files.")
     win.files_hint.setWordWrap(True)
+    win.files_hint.setProperty("gvcRole", "fieldHint")
     files_group_layout.addWidget(win.files_hint)
-    win.files = QListWidget()
+    win.files = EmptyStateListWidget()
     win.files.setSelectionMode(QListWidget.ExtendedSelection)
+    win.files.set_empty_state_text("Drag media files here")
     win.files.setStyleSheet(
-        "QListWidget { border: 1px dashed #687386; }"
+        "QListWidget { border: 1px dashed #526174; padding: 10px; }"
+        "QListWidget:hover { border-color: #58a6ff; background: #1b2027; }"
         "QListWidget::item:selected { background-color: #58a6ff; color: #11151c; }"
     )
     win.files_delete_shortcut = QShortcut(QKeySequence.StandardKey.Delete, win.files)
@@ -206,11 +240,10 @@ def _build_convert_controls(win, convert_layout: QVBoxLayout, engine_profiles: t
     win.resolution.setMinimumWidth(170)
     win.resolution.addItems(list(RESOLUTION_PRESETS))
     win.resolution.setCurrentText("Keep original")
-    win.fps = QDoubleSpinBox()
-    win.fps.setRange(1.0, 60.0)
-    win.fps.setDecimals(2)
-    win.fps.setSingleStep(1.0)
-    win.fps.setValue(30.0)
+    win.fps = QComboBox()
+    for fps in VIDEO_FPS_OPTIONS:
+        win.fps.addItem(f"{fps} FPS", fps)
+    win.fps.setCurrentIndex(win.fps.findData("30"))
     win.fps.setMinimumWidth(95)
     win.format_label = QLabel("Format")
     win.quality_label = QLabel("Quality")
@@ -405,8 +438,11 @@ def _build_atlas_controls(win, atlas_layout: QVBoxLayout) -> None:
 
 def _build_actions_row(win, left: QVBoxLayout) -> None:
     actions_row = QHBoxLayout()
+    actions_row.setSpacing(10)
     win.btn_action = QPushButton("Convert Video")
+    win.btn_action.setProperty("gvcRole", "primaryAction")
     win.btn_cancel = QPushButton("Cancel")
+    win.btn_cancel.setProperty("gvcRole", "secondaryAction")
     win.btn_cancel.setEnabled(False)
     actions_row.addWidget(win.btn_action)
     actions_row.addWidget(win.btn_cancel)

@@ -11,6 +11,7 @@ def apply_language(win) -> None:
     win.btn_clear.setText(win._tr("clear"))
     win.files_group.setTitle(win._tr("files_group_title"))
     win.files_hint.setText(win._tr("files_drop_hint"))
+    win.files.set_empty_state_text(win._tr("files_empty_drop_message"))
     win._update_info_toggle_button()
     win.output_label.setText(win._tr("output"))
     win.btn_output_change.setText(win._tr("change_output"))

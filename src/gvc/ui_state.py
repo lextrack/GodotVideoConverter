@@ -24,7 +24,7 @@ def apply_settings(win, settings: AppSettings) -> None:
     _set_combo_value(win.format, settings.selected_format, "ogv")
     _set_combo_data_value(win.quality, settings.selected_quality, "optimized")
     _set_combo_value(win.resolution, settings.selected_resolution, "Keep original")
-    win.fps.setValue(coerce_video_fps(settings.fps))
+    _set_video_fps_value(win.fps, settings.fps)
     win.keep_audio.setChecked(settings.keep_audio)
     win._reload_ogv_mode_options(win.engine_profile.currentText(), settings.selected_ogv_mode)
     _set_combo_data_value(win.audio_format, settings.selected_audio_format, "ogg")
@@ -48,7 +48,7 @@ def collect_settings(win) -> AppSettings:
         selected_quality=_combo_data_value(win.quality),
         selected_ogv_mode=win._ogv_mode_value(),
         keep_audio=win.keep_audio.isChecked(),
-        fps=f"{win.fps.value():g}",
+        fps=str(win.fps.currentData()),
         selected_audio_format=win._audio_format_value(),
         selected_audio_bitrate=win._audio_bitrate_value(),
         selected_audio_sample_rate=win._audio_sample_rate_value(),
@@ -75,6 +75,15 @@ def coerce_video_fps(value: str | float | int | None) -> float:
     except (TypeError, ValueError):
         fps = 30.0
     return max(1.0, min(60.0, fps))
+
+
+def _set_video_fps_value(combo: QComboBox, value: str | float | int | None) -> None:
+    target = coerce_video_fps(value)
+    choices = [(index, float(combo.itemData(index))) for index in range(combo.count())]
+    if not choices:
+        return
+    closest_index, _ = min(choices, key=lambda choice: abs(choice[1] - target))
+    combo.setCurrentIndex(closest_index)
 
 
 def _set_combo_value(combo: QComboBox, value: str, fallback: str) -> None:
@@ -104,4 +113,3 @@ def _set_combo_data_value(combo: QComboBox, value: str, fallback: str) -> None:
         combo.setCurrentIndex(fallback_idx)
         return
     _set_combo_value(combo, value, fallback)
-

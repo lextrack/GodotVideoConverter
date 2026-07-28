@@ -164,7 +164,7 @@ def experience_context(win) -> ExperienceContext:
         fmt=win.format.currentText(),
         quality=win._quality_value(),
         resolution=win.resolution.currentText().strip(),
-        fps=float(win.fps.value()),
+        fps=float(win.fps.currentData()),
         keep_audio=win.keep_audio.isChecked(),
         ogv_mode=win._ogv_mode_value(),
         output_folder=win.output.text().strip() or "output",
