@@ -28,6 +28,7 @@ htmlcov/
 
 # Installer / packager outputs
 .pyinstaller/
+.appimage/
 
 # Local environment files
 .env

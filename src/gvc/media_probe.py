@@ -5,6 +5,8 @@ import subprocess
 
 from gvc.process_utils import hidden_subprocess_kwargs
 
+FFPROBE_TIMEOUT_SECONDS = 5.0
+
 
 def probe_media_json(ffprobe_path: str, file_path: str) -> dict[str, object] | None:
     cmd = [
@@ -24,9 +26,10 @@ def probe_media_json(ffprobe_path: str, file_path: str) -> dict[str, object] | N
             text=True,
             encoding="utf-8",
             errors="replace",
+            timeout=FFPROBE_TIMEOUT_SECONDS,
             **hidden_subprocess_kwargs(),
         )
-    except (OSError, subprocess.SubprocessError):
+    except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
         return None
     if proc.returncode != 0 or not proc.stdout:
         return None

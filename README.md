@@ -170,16 +170,58 @@ gvc-gui
 
 ## Portable Build
 
-### Linux
+### Linux build options
 
-Make sure `ffmpeg` and `ffprobe` are available in `PATH`, then run:
+Linux releases can be built in two ways. Neither package includes FFmpeg, so end
+users need their distribution's `ffmpeg` package, with both `ffmpeg` and
+`ffprobe` available in `PATH`.
+
+| Build | Command | Output | Best for |
+| --- | --- | --- | --- |
+| PyInstaller folder | `bash scripts/build_linux.sh` | `dist/gvc/` | Users who prefer a conventional executable folder or a ZIP download. |
+| AppImage | `bash scripts/build_appimage.sh` | `dist/godot-video-converter-<version>-<architecture>.AppImage` | A single portable download for most Linux desktop distributions. |
+
+### Linux: PyInstaller folder
+
+On a Linux machine, run:
 
 ```bash
 bash scripts/build_linux.sh
 ```
 
 The script installs the required build dependencies and runs `PyInstaller` with `gvc.spec`.
-Output is generated in `dist/gvc/`.
+The result is the `dist/gvc/` directory. Distribute that whole directory (for
+example, as a `.zip`); users run `gvc` inside it.
+
+### Linux: AppImage
+
+On a Linux machine, run:
+
+```bash
+bash scripts/build_appimage.sh
+```
+
+The build creates `dist/godot-video-converter-<version>-<architecture>.AppImage`.
+It downloads the pinned and SHA-256-verified `appimagetool` release into
+`.appimage/tools/` on the first run; alternatively, set `APPIMAGETOOL` to a local,
+trusted executable. The AppImage bundles Python, PySide6, and
+the application, but deliberately does **not** bundle FFmpeg. Users must install
+their distribution's `ffmpeg` package so both `ffmpeg` and `ffprobe` are in `PATH`.
+
+To run a released AppImage:
+
+```bash
+chmod +x godot-video-converter-*.AppImage
+./godot-video-converter-*.AppImage
+```
+
+## Tests
+
+The automated unit tests do not need FFmpeg or a graphical session:
+
+```bash
+python -m unittest discover -s tests -v
+```
 
 ### Windows
 
