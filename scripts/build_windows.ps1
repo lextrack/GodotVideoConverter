@@ -35,9 +35,9 @@ try {
     Write-Step "FFmpeg binaries found in ./bin."
 
     Write-Step "Installing build dependencies..."
-    & python -m pip install -e ".[build]"
+    & python -m pip install -e ".[release]"
     if ($LASTEXITCODE -ne 0) {
-        Fail "Failed installing project with pip install -e .[build]"
+        Fail "Failed installing project with pip install -e .[release]"
     }
 
     Write-Step "Running PyInstaller (GUI mode)..."
@@ -66,6 +66,7 @@ catch {
     Write-Host "[GVC BUILD] Build failed." -ForegroundColor Red
     Write-Host "[GVC BUILD] Details: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "[GVC BUILD] Tip: run this script from a PowerShell terminal to keep messages visible." -ForegroundColor Yellow
+    exit 1
 }
 finally {
     Pause-IfInteractive

@@ -42,7 +42,7 @@ rm -rf "$APPDIR"
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" \
   "$APPDIR/usr/share/icons/hicolor/256x256/apps" "$TOOL_CACHE" "$ROOT_DIR/dist"
 
-python -m pip install -e ".[build]"
+python -m pip install -e ".[release]"
 python -m PyInstaller \
   --noconfirm \
   --clean \

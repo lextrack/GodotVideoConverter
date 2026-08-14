@@ -19,28 +19,6 @@ This project is a Python rewrite of the original .NET tool I made some time ago.
 - Batch process files from a GUI
 - Show export summaries and recommendations
 
-## Main Workflows
-
-### Video Conversion
-
-- `ogv` is the main target for Godot playback
-- `mp4`, `webm`, and `gif` are also available
-- Quality, FPS, resolution, audio, and OGV mode can be adjusted from the GUI.
-- Each engine has its own OGV modes.
-- Some `.mp4` files downloaded directly from YouTube Music may include unusual embedded artwork or metadata. On Windows, these files can trigger `.ogv` preview or file-lock issues in Explorer even when the converted file itself is valid and plays correctly in Godot.
-
-### Audio Conversion
-
-- Convert audio files to `ogg`, `mp3`, `aac`, or `wav`
-- Extract audio from selected video files
-- For Godot, use `ogg` for music/loops and `wav` for short SFX
-
-### Atlas Generation
-
-- Export PNG atlases from video clips
-- Layout modes: `grid`, `horizontal`, `vertical`
-- Uses `ffmpeg` for frame sampling and atlas generation
-
 ## Requirements
 
 - Python `3.11+`
@@ -160,14 +138,6 @@ sudo dnf install ffmpeg python3 python3-pip
 sudo zypper install ffmpeg python3 python3-pip
 ```
 
-## Running the GUI
-
-With the virtual environment active on Windows or Linux:
-
-```bash
-gvc-gui
-```
-
 ## Portable Build
 
 ### Linux build options
@@ -176,10 +146,10 @@ Linux releases can be built in two ways. Neither package includes FFmpeg, so end
 users need their distribution's `ffmpeg` package, with both `ffmpeg` and
 `ffprobe` available in `PATH`.
 
-| Build | Command | Output | Best for |
-| --- | --- | --- | --- |
-| PyInstaller folder | `bash scripts/build_linux.sh` | `dist/gvc/` | Users who prefer a conventional executable folder or a ZIP download. |
-| AppImage | `bash scripts/build_appimage.sh` | `dist/godot-video-converter-<version>-<architecture>.AppImage` | A single portable download for most Linux desktop distributions. |
+| Build | Output | Best for |
+| --- | --- | --- |
+| PyInstaller folder | `dist/gvc/` | A conventional executable folder or ZIP download. |
+| AppImage | `dist/godot-video-converter-<version>-<architecture>.AppImage` | A single portable download for most Linux desktop distributions. |
 
 ### Linux: PyInstaller folder
 
@@ -215,14 +185,6 @@ chmod +x godot-video-converter-*.AppImage
 ./godot-video-converter-*.AppImage
 ```
 
-## Tests
-
-The automated unit tests do not need FFmpeg or a graphical session:
-
-```bash
-python -m unittest discover -s tests -v
-```
-
 ### Windows
 
 Copy `ffmpeg.exe` and `ffprobe.exe` into `bin/`, then run:
@@ -231,6 +193,14 @@ Copy `ffmpeg.exe` and `ffprobe.exe` into `bin/`, then run:
 ./scripts/build_windows.ps1
 ```
 
-The script installs the required build dependencies and runs `PyInstaller` with `gvc.spec`.
-Output is generated in `dist/gvc/`.
-Run `dist/gvc/gvc.exe`.
+Output is generated in `dist/gvc/`. Run `dist/gvc/gvc.exe`.
+
+## Tests
+
+The automated unit tests do not need FFmpeg or a graphical session. Install the
+project first, then run:
+
+```bash
+python -m pip install -e .
+python -m unittest discover -s tests -v
+```
