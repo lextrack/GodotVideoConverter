@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import deque
 from concurrent.futures import CancelledError
 import re
 import queue
@@ -9,7 +10,7 @@ import threading
 from threading import Event
 from typing import Callable
 
-from gvc.process_utils import hidden_subprocess_kwargs
+from gvc.process_utils import external_subprocess_env, hidden_subprocess_kwargs
 from gvc.process_utils import attach_kill_on_close_job, close_windows_handle
 
 TIME_RE = re.compile(r"time=(\d+):(\d+):(\d+(?:\.\d+)?)")
@@ -59,6 +60,7 @@ def run_ffmpeg(
         encoding="utf-8",
         errors="replace",
         bufsize=1,
+        env=external_subprocess_env(),
         **hidden_subprocess_kwargs(),
     )
     job_handle = attach_kill_on_close_job(process)
@@ -82,6 +84,7 @@ def run_ffmpeg(
 
         last_progress = 0
         errors: list[str] = []
+        stderr_tail: deque[str] = deque(maxlen=20)
         started_at = time.monotonic()
         announced_warmup = False
 
@@ -107,8 +110,14 @@ def run_ffmpeg(
                     break
                 continue
 
-            if "Error" in line or "Invalid" in line or "No such" in line or "Permission denied" in line:
-                errors.append(line.strip())
+            message = line.strip()
+            if message:
+                stderr_tail.append(message)
+            if any(
+                marker in message.lower()
+                for marker in ("error", "invalid", "no such", "permission denied")
+            ):
+                errors.append(message)
 
             match = TIME_RE.search(line)
             if match and total_seconds and total_seconds > 0:
@@ -127,7 +136,9 @@ def run_ffmpeg(
         process.wait()
         reader.join(timeout=1)
         if process.returncode != 0:
-            detail = "; ".join(errors[:5]) if errors else f"Exit code {process.returncode}"
+            detail = "; ".join(errors[:5]) if errors else " | ".join(stderr_tail)
+            if not detail:
+                detail = f"Exit code {process.returncode}"
             raise FFmpegRunError(f"FFmpeg failed: {detail}")
 
         if on_progress:

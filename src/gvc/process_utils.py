@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import ctypes
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,24 @@ def hidden_subprocess_kwargs() -> dict[str, object]:
         "creationflags": subprocess.CREATE_NO_WINDOW,
         "startupinfo": startupinfo,
     }
+
+
+def external_subprocess_env() -> dict[str, str]:
+    """Return an environment suitable for system programs started by the app.
+
+    PyInstaller prepends its bundled library directory to LD_LIBRARY_PATH on
+    Linux. That setting is needed by this application, but must not be passed
+    to system programs such as ffmpeg and ffprobe: their system libraries can
+    otherwise be replaced by incompatible bundled copies.
+    """
+    env = dict(os.environ)
+    if sys.platform.startswith("linux") and getattr(sys, "frozen", False):
+        original = env.get("LD_LIBRARY_PATH_ORIG")
+        if original is None:
+            env.pop("LD_LIBRARY_PATH", None)
+        else:
+            env["LD_LIBRARY_PATH"] = original
+    return env
 
 
 def attach_kill_on_close_job(process: subprocess.Popen) -> object | None:
