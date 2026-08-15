@@ -4,11 +4,10 @@ import sys
 from pathlib import Path
 from threading import Event
 
-from PySide6.QtCore import QThread, QTimer, QUrl
+from PySide6.QtCore import QThread, QTimer
 from PySide6.QtGui import (
     QColor,
     QCloseEvent,
-    QDesktopServices,
     QDragEnterEvent,
     QDropEvent,
     QIcon,
@@ -25,6 +24,7 @@ from gvc.dialogs import (
     show_open_output_failed,
     show_output_error,
 )
+from gvc.desktop import open_directory
 from gvc.ffmpeg_paths import FFmpegNotFoundError, resolve_ffmpeg_and_ffprobe
 from gvc import __version__
 from gvc.gui_experience import (
@@ -702,7 +702,7 @@ class MainWindow(QMainWindow):
         output = self._ensure_output_directory(notify=True)
         if output is None:
             return
-        opened = QDesktopServices.openUrl(QUrl.fromLocalFile(str(output.resolve())))
+        opened = open_directory(output)
         if not opened:
             show_open_output_failed(self, self._tr)
 
